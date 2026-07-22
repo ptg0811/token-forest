@@ -1,0 +1,17 @@
+{
+  "name": "@token-forest/uploader",
+  "version": "0.1.0",
+  "description": "Push local Claude Code token usage to a token-forest server.",
+  "type": "module",
+  "private": false,
+  "bin": {
+    "token-forest-upload": "./src/cli.mjs"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  }
+}

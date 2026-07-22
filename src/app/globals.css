@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+/* Force dark: switch Tailwind's dark variant from the default media query to a
+   class strategy so the 92 existing `dark:` utilities apply whenever <html> has
+   the `dark` class, independent of the viewer's OS setting. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: dark;
+
+  /* Dark Knight palette — deep-black + gunmetal, cold steel-blue + amber. */
+  --background: #0a0b0d; /* near-black (cool) */
+  --foreground: #e6e8eb;
+
+  --surface-1: #16181c; /* gunmetal panel */
+  --surface-2: #1e2126; /* raised / hover */
+  --border: #2a2e35; /* steel hairline */
+
+  --text-primary: #eef1f4;
+  --text-secondary: #9aa3ad; /* steel grey */
+  --text-muted: #6b7480; /* muted steel */
+  --grid: #23272e;
+  --axis: #333942;
+
+  --accent: #5b8fb0; /* cold steel-blue — link/focus/primary */
+  --accent-strong: #7fb4d4; /* hover/active */
+  --signal: #f0a020; /* bat-signal amber — warnings/CTA/limit */
+  --signal-strong: #ffb733;
+
+  /* Categorical series slots — cooled/steely, still hue-separable. */
+  --series-1: #5b9fd4; /* steel blue */
+  --series-2: #4bb39b; /* cold teal */
+  --series-3: #f0a020; /* amber */
+  --series-4: #7d8fb3; /* slate periwinkle */
+  --series-5: #9a86d4; /* cold violet */
+  --series-6: #e0685f; /* ember red */
+  --series-7: #c98fb0; /* dusty magenta */
+  --series-8: #d98a4a; /* bronze orange */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
+  --color-signal: var(--signal);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
