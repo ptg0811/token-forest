@@ -10,6 +10,7 @@ import {
 } from "@/lib/db";
 import { isoDaysAgo } from "@/lib/date";
 import { estimateWeight, isPremiumModel, rateFamily } from "@/lib/pricing";
+import type { GrowthDay } from "@/lib/growth";
 
 // Headline tokens per row = input + output. Cache tokens are excluded — they
 // dwarf real usage by orders of magnitude and would drown the adoption signal;
@@ -1278,4 +1279,39 @@ function pivot(
     return bucket;
   });
   return { data, tools };
+}
+
+// 멤버의 날짜별 활동 재료. distinct 툴 목록 + claude_code input/cacheRead 합.
+// since(포함) 이후 날짜만. 성장엔진(src/lib/growth.ts) 입력용.
+export async function getGrowthDays(
+  memberId: string,
+  since: string,
+): Promise<GrowthDay[]> {
+  await connectDb();
+  const rows = await UsageDaily.aggregate([
+    { $match: { memberId: oid(memberId), date: { $gte: since } } },
+    {
+      $group: {
+        _id: "$date",
+        tools: { $addToSet: "$tool" },
+        input: {
+          $sum: {
+            $cond: [{ $eq: ["$tool", "claude_code"] }, { $ifNull: ["$inputTokens", 0] }, 0],
+          },
+        },
+        cacheRead: {
+          $sum: {
+            $cond: [{ $eq: ["$tool", "claude_code"] }, { $ifNull: ["$cacheReadTokens", 0] }, 0],
+          },
+        },
+      },
+    },
+    { $sort: { _id: 1 } },
+  ]);
+  return rows.map((r) => ({
+    date: r._id as string,
+    tools: (r.tools as string[]) ?? [],
+    input: r.input as number,
+    cacheRead: r.cacheRead as number,
+  }));
 }
