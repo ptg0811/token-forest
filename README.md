@@ -138,6 +138,17 @@ pnpm report --dry-run              # 주간 슬랙 리포트 미리보기
 중앙 API가 없는 툴은 커넥터 대신 업로더 파서(`packages/uploader/src/parsers/`)나
 수동 입력으로 커버한다.
 
+## 성장형 메뉴바 (선택)
+
+각 구성원은 macOS 메뉴바에서 자기 사용량을 **숲 성장** 게임으로 볼 수 있다. 서버가
+크로스기기 집계에서 성장 포인트를 계산하므로 어느 기기에서 열어도 같은 나무다.
+
+- 클라이언트: `clients/xbar/`(xbar/SwiftBar 플러그인). 설치는 그 폴더 README 참고.
+- 서버 엔드포인트: `GET /api/me/summary`(본인 `tmk_` 토큰 인증, 개인 데이터만).
+- 성장 규칙: 온보딩 이후 **활동일·꾸준함(스트릭)·효율(캐시 적중·툴 다양성)**에만
+  연동 — 토큰 소비량은 성장에 기여하지 않는다(과소비 유인 차단). 엔진은
+  `src/lib/growth.ts`(순수 함수), 검증은 `src/scripts/verify-growth.ts`.
+
 ## 배포 (Docker)
 
 ```bash
