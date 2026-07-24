@@ -27,10 +27,9 @@ services:
     volumes:
       - mongo-data:/data/db
     # Loopback-only publish so host-side admin tools (`pnpm member`, mongodump)
-    # can reach the same DB. Stop any legacy MongoDB bound to this port before
-    # bringing the stack up.
+    # can reach the same DB. Pick a host port that no other MongoDB is using.
     ports:
-      - "127.0.0.1:27199:27017"
+      - "127.0.0.1:27201:27017"
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ping:1})"]
       interval: 10s

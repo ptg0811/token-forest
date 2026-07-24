@@ -158,7 +158,7 @@ docker compose up -d --build
 
 - compose가 **앱 + MongoDB**를 함께 띄운다. 앱은 compose 네트워크의
   `mongodb://mongo:27017/token-meter`에 붙고, 같은 DB가 호스트 루프백
-  `127.0.0.1:27199`로도 공개돼 관리 CLI·백업이 접근한다. 앱 포트(4700)도
+  `127.0.0.1:27201`로도 공개돼 관리 CLI·백업이 접근한다. 앱 포트(4700)도
   루프백으로만 publish — 외부 노출은 항상 리버스프록시가 담당.
 - **Coolify 배포**: 이 저장소를 Docker Compose 리소스로 등록하면 FQDN 지정·TLS
   (Let's Encrypt)·Traefik 라우팅이 자동이다. env는 Coolify UI에서 입력.
@@ -179,8 +179,8 @@ docker compose up -d --build
 
 ```bash
 mongodump --uri mongodb://127.0.0.1:<구포트>/token-meter --archive=/tmp/tf.dump
-docker compose up -d mongo   # 구 Mongo의 27199 점유 먼저 해제할 것
-mongorestore --uri mongodb://127.0.0.1:27199 --archive=/tmp/tf.dump
+docker compose up -d mongo   # 호스트 포트(27201)가 비어 있는지 먼저 확인
+mongorestore --uri mongodb://127.0.0.1:27201 --archive=/tmp/tf.dump
 ```
 
 ### 백업
@@ -188,7 +188,7 @@ mongorestore --uri mongodb://127.0.0.1:27199 --archive=/tmp/tf.dump
 별도 자동 백업이 없다면 주기적으로 mongodump를 권장:
 
 ```bash
-mongodump --uri mongodb://127.0.0.1:27199/token-meter --archive=token-forest-$(date +%F).dump
+mongodump --uri mongodb://127.0.0.1:27201/token-meter --archive=token-forest-$(date +%F).dump
 ```
 
 `.env`의 `TOKEN_FOREST_SECRET`은 DB 백업과 **별도로** 안전하게 보관할 것 —
