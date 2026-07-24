@@ -19,8 +19,11 @@ RUN pnpm build
 FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+# Default serve port; docker-compose pins the same value. Keep EXPOSE in sync —
+# reverse proxies (Traefik) auto-detect the upstream port from it.
+ENV PORT=4700
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
-EXPOSE 3000
+EXPOSE 4700
 CMD ["node", "server.js"]
