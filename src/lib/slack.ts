@@ -59,7 +59,7 @@ export async function buildWeeklyReport(): Promise<string> {
   const previous = new Map(previousList.map((t) => [t.tool, t]));
 
   const lines = [
-    `*토큰미터 주간 리포트* (${weekAgo} ~ ${isoDaysAgo(1)})`,
+    `*token-forest 주간 리포트* (${weekAgo} ~ ${isoDaysAgo(1)})`,
     "",
   ];
   if (current.length === 0) {
