@@ -153,27 +153,42 @@ pnpm report --dry-run              # 주간 슬랙 리포트 미리보기
 
 ```bash
 cp .env.example .env   # 운영 키 입력
-docker compose up -d --build   # http://<서버>:3000
+docker compose up -d --build
 ```
 
-- 저장소는 **호스트의 MongoDB**(`MONGODB_URI`, 기본 `mongodb://127.0.0.1:27017/token-meter`).
-  컨테이너는 `network_mode: host`로 호스트 Mongo에 접속하고 4700 포트로 서빙한다.
+- compose가 **앱 + MongoDB**를 함께 띄운다. 앱은 compose 네트워크의
+  `mongodb://mongo:27017/token-meter`에 붙고, 같은 DB가 호스트 루프백
+  `127.0.0.1:27199`로도 공개돼 관리 CLI·백업이 접근한다. 앱 포트(4700)도
+  루프백으로만 publish — 외부 노출은 항상 리버스프록시가 담당.
+- **Coolify 배포**: 이 저장소를 Docker Compose 리소스로 등록하면 FQDN 지정·TLS
+  (Let's Encrypt)·Traefik 라우팅이 자동이다. env는 Coolify UI에서 입력.
 - **인증(대시보드)**: 앱은 신원인지 프록시가 주입하는 신원 헤더를 신뢰한다. 프록시
   뒤에 둘 때만 `TOKEN_FOREST_TRUST_TAILSCALE_HEADERS=1`을 설정한다. 노출 방식은 선택 —
   Tailscale `serve`(헤더 자동 주입), 또는 Coolify/Traefik·nginx 등 리버스프록시(TLS 종료
   + 신원 헤더 주입). 헤더명은 프록시에 맞게 설정 가능.
-- 사용량 **수집 엔드포인트**(`/api/ingest`·`/api/limits`·`/install.sh`)는 공개 HTTPS로
-  노출할 수 있다 — 멤버가 VPN 없이 업로드. 자체 리버스프록시(Traefik 등)로 그 세 경로만
-  라우팅하거나, 선택적으로 Cloudflare Tunnel 사이드카를 쓴다(`.env`의 `CLOUDFLARE_TUNNEL_TOKEN`).
+- 사용량 **수집 엔드포인트**는 공개 HTTPS로 노출할 수 있다 — 멤버가 VPN 없이
+  업로드. 리버스프록시(Traefik 등)의 경로 화이트리스트로 `/api/ingest`·`/api/limits`·
+  `/install.sh`·`/api/me/summary` **4경로만** 통과시키고 나머지는 차단한다
+  (실제 인증은 앱의 `tmk_` 토큰이 담당).
 - cron(동기화·슬랙 리포트)은 서버 프로세스에 내장.
-- 구성원 등록 등 관리 CLI는 호스트에서 같은 URI로 실행하면 된다 (`pnpm member ...`).
+- 구성원 등록 등 관리 CLI는 호스트에서 `.env`의 URI로 실행하면 된다 (`pnpm member ...`).
+
+### 기존 호스트 Mongo에서 이관
+
+기존에 별도 MongoDB를 쓰고 있었다면 1회 이관:
+
+```bash
+mongodump --uri mongodb://127.0.0.1:<구포트>/token-meter --archive=/tmp/tf.dump
+docker compose up -d mongo   # 구 Mongo의 27199 점유 먼저 해제할 것
+mongorestore --uri mongodb://127.0.0.1:27199 --archive=/tmp/tf.dump
+```
 
 ### 백업
 
 별도 자동 백업이 없다면 주기적으로 mongodump를 권장:
 
 ```bash
-mongodump --uri mongodb://127.0.0.1:27017/token-meter --archive=token-forest-$(date +%F).dump
+mongodump --uri mongodb://127.0.0.1:27199/token-meter --archive=token-forest-$(date +%F).dump
 ```
 
 `.env`의 `TOKEN_FOREST_SECRET`은 DB 백업과 **별도로** 안전하게 보관할 것 —
