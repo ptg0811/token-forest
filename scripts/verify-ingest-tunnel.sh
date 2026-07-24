@@ -24,4 +24,12 @@ echo "[3] /api/ingest 는 토큰 없이 401 (경로는 열려있고 인증은 �
 c="$(code -X POST "${base}/api/ingest")"
 [ "$c" = "401" ] && echo "    OK: 401" || echo "    WARN: ${c} (401 기대)"
 
+echo "[4] /api/me/summary 는 토큰 없이 401 (메뉴바 클라이언트 경로)"
+c="$(code "${base}/api/me/summary")"
+[ "$c" = "401" ] && echo "    OK: 401" || { echo "    FAIL: ${c} (401 기대 — 403이면 화이트리스트 누락)"; fail=1; }
+
+echo "[5] /uploader.tgz 는 200 (installer 다운로드 경로)"
+c="$(code "${base}/uploader.tgz")"
+[ "$c" = "200" ] && echo "    OK: 200" || { echo "    FAIL: ${c} (200 기대)"; fail=1; }
+
 [ "$fail" = "0" ] && echo "PASS" || { echo "FAILED"; exit 1; }

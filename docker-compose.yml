@@ -17,6 +17,25 @@ services:
       # that value stays host-only (admin CLI, mongodump) and points at the
       # loopback publish below.
       MONGODB_URI: mongodb://mongo:27017/token-meter
+    # Public-ingest path allowlist for a Traefik edge (Coolify). Set INGEST_HOST
+    # (e.g. ingest.example.com) to activate; unset, the placeholder host matches
+    # nothing and these routers stay inert. The allow router (priority 100) passes
+    # only the five public paths; the block router (90) outranks the proxy's
+    # auto-generated catch-all and rejects everything else on that host. The
+    # "deny" is an ipallowlist no client can satisfy — Traefik has no plain
+    # deny middleware.
+    labels:
+      - "traefik.http.routers.tf-ingest.rule=Host(`${INGEST_HOST:-ingest.invalid}`) && (PathPrefix(`/api/ingest`) || PathPrefix(`/api/limits`) || PathPrefix(`/install.sh`) || PathPrefix(`/uploader.tgz`) || PathPrefix(`/api/me/summary`))"
+      - "traefik.http.routers.tf-ingest.entryPoints=https"
+      - "traefik.http.routers.tf-ingest.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.tf-ingest.priority=100"
+      - "traefik.http.routers.tf-ingest.middlewares=gzip"
+      - "traefik.http.routers.tf-block.rule=Host(`${INGEST_HOST:-ingest.invalid}`)"
+      - "traefik.http.routers.tf-block.entryPoints=https"
+      - "traefik.http.routers.tf-block.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.tf-block.priority=90"
+      - "traefik.http.routers.tf-block.middlewares=tf-deny"
+      - "traefik.http.middlewares.tf-deny.ipallowlist.sourcerange=255.255.255.255/32"
     depends_on:
       mongo:
         condition: service_healthy

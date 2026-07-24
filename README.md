@@ -168,8 +168,10 @@ docker compose up -d --build
   + 신원 헤더 주입). 헤더명은 프록시에 맞게 설정 가능.
 - 사용량 **수집 엔드포인트**는 공개 HTTPS로 노출할 수 있다 — 멤버가 VPN 없이
   업로드. 리버스프록시(Traefik 등)의 경로 화이트리스트로 `/api/ingest`·`/api/limits`·
-  `/install.sh`·`/api/me/summary` **4경로만** 통과시키고 나머지는 차단한다
-  (실제 인증은 앱의 `tmk_` 토큰이 담당).
+  `/install.sh`·`/uploader.tgz`·`/api/me/summary` **5경로만** 통과시키고 나머지는
+  차단한다(실제 인증은 앱의 `tmk_` 토큰이 담당). Traefik/Coolify는 compose에 준비된
+  라벨이 이를 수행한다 — env `INGEST_HOST=<공개 호스트>`만 설정하면 활성화되고,
+  미설정 시 비활성. 검증: `HOST=<공개 호스트> bash scripts/verify-ingest-tunnel.sh`.
 - cron(동기화·슬랙 리포트)은 서버 프로세스에 내장.
 - 구성원 등록 등 관리 CLI는 호스트에서 `.env`의 URI로 실행하면 된다 (`pnpm member ...`).
 
