@@ -1,0 +1,30 @@
+name: menubar
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "clients/macos/**"
+      - ".github/workflows/menubar.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    defaults:
+      run:
+        working-directory: clients/macos/TokenForest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: swift build -c release
+      - name: Test
+        run: swift test
+      - name: Bundle .app
+        run: ./scripts/make-app.sh || echo "make-app.sh not yet present (Task 4)"
+      - name: Upload artifact
+        if: hashFiles('clients/macos/TokenForest/build/TokenForest.zip') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: TokenForest-app
+          path: clients/macos/TokenForest/build/TokenForest.zip
