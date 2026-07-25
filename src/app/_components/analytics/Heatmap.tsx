@@ -11,8 +11,8 @@ const DOW = ["월", "화", "수", "목", "금", "토", "일"];
 // flattening the rest. Zero cells get a neutral tint so the grid stays legible
 // without reading as low usage.
 function cellColor(value: number, max: number): string {
-  if (value <= 0) return "color-mix(in srgb, var(--text-muted) 8%, transparent)";
-  const pct = 14 + 86 * Math.sqrt(value / max);
+  if (value <= 0) return "color-mix(in srgb, var(--text-muted) 20%, transparent)";
+  const pct = 30 + 70 * Math.sqrt(value / max);
   return `color-mix(in srgb, var(--series-1) ${pct}%, transparent)`;
 }
 

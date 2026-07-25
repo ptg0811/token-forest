@@ -17,7 +17,7 @@
 
   --text-primary: #26302a;
   --text-secondary: #5d6b60; /* 이끼 그레이 */
-  --text-muted: #8a9389;
+  --text-muted: #666d65; /* darkened for WCAG AA on paper/surface-2 (was #8a9389, ~2.9:1) */
   --grid: #e7e4d6;
   --axis: #c9c6b5;
 

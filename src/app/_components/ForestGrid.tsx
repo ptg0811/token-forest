@@ -2,7 +2,7 @@ import { connectDb, Member } from "@/lib/db";
 import { getGrowthDays } from "@/lib/queries";
 import { computeGrowth } from "@/lib/growth";
 import { todayUtc } from "@/lib/date";
-import { Card } from "@/app/_components/ui";
+import { Card, EmptyState } from "@/app/_components/ui";
 
 // 팀 숲: 멤버별 나무 그리드. 안티게이밍 가드레일 — GP·스테이지·스트릭만,
 // 토큰 볼륨은 절대 표시하지 않는다 (성장 엔진 스펙).
@@ -42,7 +42,7 @@ export default async function ForestGrid() {
           ))}
         </div>
       ) : (
-        <p className="text-sm text-[var(--text-muted)]">등록된 구성원이 없습니다.</p>
+        <EmptyState message="등록된 구성원이 없습니다." />
       )}
     </Card>
   );

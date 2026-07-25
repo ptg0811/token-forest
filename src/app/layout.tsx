@@ -51,7 +51,7 @@ export default async function RootLayout({
                   priority
                 />
                 <span className="flex flex-col leading-none">
-                  <span className="bg-gradient-to-b from-[#eef2f6] via-[#aab4bf] to-[#7c8894] bg-clip-text text-[15px] font-bold uppercase tracking-[0.18em] text-transparent">
+                  <span className="text-[15px] font-bold uppercase tracking-[0.18em] text-[var(--text-primary)]">
                     Tokenizer
                   </span>
                   <span className="mt-0.5 text-[9px] font-medium uppercase tracking-[0.14em] text-[var(--signal)]/80">
