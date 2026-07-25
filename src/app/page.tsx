@@ -22,7 +22,7 @@ import {
 import LimitsOverview from "@/app/_components/LimitsOverview";
 import { SyncNowButton } from "@/app/_components/SyncNowButton";
 import { getNumStyle } from "@/app/_lib/numfmt";
-import ForestGrid from "@/app/_components/ForestGrid";
+import ForestScene from "@/app/_components/ForestScene";
 
 export default async function OverviewPage({
   searchParams,
@@ -79,7 +79,7 @@ export default async function OverviewPage({
         </Card>
 
         <div className="lg:col-span-3">
-          <ForestGrid />
+          <ForestScene />
         </div>
 
         {/* Bottom status strip: Claude limits (left 2/3, grows with members) +
