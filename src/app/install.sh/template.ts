@@ -1,9 +1,12 @@
 // The one-command uploader installer, served as text by ./route.ts.
 //
 // `renderInstaller` injects the server origin as SERVER_URL so the installed
-// config, download URL, and success message all point back at the server that
-// served the script. The origin is embedded as a single-quoted shell literal;
-// any single quote is escaped so it cannot break out of the literal.
+// config, download URL, and any *operational* references all point back at
+// the server that served the script (the ingest host). It also injects
+// DASHBOARD_URL — which may be a different, login-gated host — used only for
+// the human-readable links in the completion banner. Both are embedded as
+// single-quoted shell literals; any single quote is escaped so it cannot
+// break out of the literal.
 //
 // The body below is plain bash. Inside this TS template literal only backticks
 // and the two-character sequence `${` are special — the script deliberately
@@ -11,13 +14,15 @@
 // it reads as ordinary shell. The single unavoidable `${TMPDIR:-/tmp}` is
 // escaped as `\${...}`.
 
-export function renderInstaller(serverUrl: string): string {
+export function renderInstaller(serverUrl: string, dashboardUrl: string): string {
   const safe = serverUrl.replace(/'/g, "'\\''");
+  const safeDashboard = dashboardUrl.replace(/'/g, "'\\''");
   return `#!/usr/bin/env bash
 set -euo pipefail
 
 # ─── injected by the server ─────────────────────────────────────────────
 SERVER_URL='${safe}'
+DASHBOARD_URL='${safeDashboard}'
 
 # ─── 출력 헬퍼 (한글) ────────────────────────────────────────────────────
 info() { printf '\\033[36m▶\\033[0m %s\\n' "$1"; }
@@ -259,16 +264,16 @@ echo
 ok "설치가 완료되었습니다!"
 cat <<DONE
 
-  대시보드:    $SERVER_URL
+  대시보드:    $DASHBOARD_URL
   설정 파일:   $CONFIG_FILE
   업로더:      $UPLOADER_DIR
   실행 래퍼:   $RUNNER
 
   · Claude Code 세션이 끝날 때마다 최근 사용량이 자동으로 업로드됩니다.
   · 매시 정각에도 자동으로 업로드됩니다 (사용 한도 스냅샷 포함).
-  · 합산 확인: $SERVER_URL/me 의 '수집 중인 기기'에 이 기기($(hostname -s 2>/dev/null || hostname))가 보이면 정상입니다.
+  · 합산 확인: $DASHBOARD_URL/me 의 '수집 중인 기기'에 이 기기($(hostname -s 2>/dev/null || hostname))가 보이면 정상입니다.
   · 언제든 직접 실행:  $RUNNER
-  · 제거 방법·문제 해결:  $SERVER_URL/setup
+  · 제거 방법·문제 해결:  $DASHBOARD_URL/setup
 
 DONE
 `;

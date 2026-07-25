@@ -3,8 +3,8 @@
 // 설정: 환경변수 TOKEN_FOREST_URL, TOKEN_FOREST_TOKEN (또는 아래 상수 편집).
 const URL_BASE = process.env.TOKEN_FOREST_URL || "https://<your-ingest-host>";
 const TOKEN = process.env.TOKEN_FOREST_TOKEN || "";
-// 대시보드는 보통 사내 주소(Tailscale 등)로 따로 서빙된다 — 공개 수집 호스트에선
-// /me 가 차단(403)되므로 링크 목적지만 분리한다. 미설정 시 URL_BASE 사용.
+// 대시보드 호스트가 수집 호스트와 다를 때만 TOKEN_FOREST_DASHBOARD_URL 설정
+// (미설정 시 URL_BASE 사용).
 const DASHBOARD_URL = process.env.TOKEN_FOREST_DASHBOARD_URL || URL_BASE;
 
 function line(text, opts = {}) {

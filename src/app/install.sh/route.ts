@@ -17,7 +17,9 @@ function resolveOrigin(req: NextRequest): string {
 }
 
 export function GET(req: NextRequest) {
-  const script = renderInstaller(resolveOrigin(req));
+  const serverUrl = resolveOrigin(req);
+  const dashboardUrl = process.env.TOKEN_FOREST_DASHBOARD_URL || serverUrl;
+  const script = renderInstaller(serverUrl, dashboardUrl);
   return new Response(script, {
     headers: {
       "content-type": "text/x-shellscript; charset=utf-8",

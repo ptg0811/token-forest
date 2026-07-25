@@ -15,6 +15,7 @@ macOS 메뉴바에서 token-forest 성장 나무를 본다. 서버가 성장을 
    export TOKEN_FOREST_URL=https://<your-ingest-host>
    export TOKEN_FOREST_TOKEN=tmk_xxx
    ```
+   대시보드가 수집 호스트와 다른 주소에 있다면 `TOKEN_FOREST_DASHBOARD_URL`도 설정한다(선택, 미설정 시 위 `TOKEN_FOREST_URL` 사용) — "숲 열기" 링크가 이 주소를 사용한다.
 4. xbar 새로고침. 파일명의 `5m` = 5분 주기.
 
 토큰은 관리자가 `pnpm member add`로 발급한 본인 `tmk_...`. 개인 사용량만 보이며 팀 데이터는 노출되지 않는다.
