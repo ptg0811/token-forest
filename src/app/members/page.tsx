@@ -26,31 +26,21 @@ export default async function MembersPage() {
   ]);
 
   const inviteMessage = [
-    "① 방금 보낸 Tailscale 초대 메일을 수락하세요 — 앱 설치까지 자동으로 안내됩니다.",
-    `② 연결되면 브라우저에서 ${origin}/me 를 여세요. 나머지는 화면이 단계별로 안내합니다.`,
+    "🌲 token-forest에 초대합니다!",
+    `① 브라우저에서 ${origin}/me 를 열고 회사 Google 계정으로 로그인하세요 — 신원이 자동으로 확인됩니다.`,
+    "② 이름을 입력해 등록하면 설치 명령이 표시됩니다. 터미널에 붙여넣으면 업로더 설치 완료 (약 1분).",
   ].join("\n");
 
   return (
     <div>
       <PageHeader title="구성원" />
 
-      <Card title="신규 구성원 초대" hint="관리자용 2단계" className="mb-4">
-        <ol className="mb-3 list-decimal space-y-1 pl-5 text-sm text-[var(--text-secondary)]">
-          <li>
-            <a
-              href="https://login.tailscale.com/admin/users"
-              target="_blank"
-              rel="noreferrer"
-              className="text-[var(--series-1)] underline"
-            >
-              Tailscale 관리 콘솔 ↗
-            </a>
-            에서 회사 이메일로 초대를 발송합니다 (초대된 사용자는 승인 절차 없이 바로
-            연결됩니다).
-          </li>
-          <li>아래 메시지를 복사해 Slack DM으로 보냅니다.</li>
-        </ol>
+      <Card title="신규 구성원 초대" hint="관리자용" className="mb-4">
         <CopyableText text={inviteMessage} />
+        <p className="mt-3 text-sm text-[var(--text-secondary)]">
+          회사 Google Workspace 계정이 있는 구성원은 별도 초대 없이 바로 로그인할 수 있습니다
+          (도메인 전체 허용). 위 메시지를 복사해 Slack DM으로 전달하세요.
+        </p>
       </Card>
 
       <Card title="구성원별 사용량" hint="전체 기간 누적" className="mb-4">
