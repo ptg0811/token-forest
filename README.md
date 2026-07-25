@@ -162,8 +162,10 @@ docker compose up -d --build
   `127.0.0.1:27201`로도 공개돼 관리 CLI·백업이 접근한다. 앱 포트(4700)도
   루프백으로만 publish — 외부 노출은 항상 리버스프록시가 담당.
 - **Coolify 배포**: 이 저장소를 Docker Compose 리소스로 등록하면 FQDN 지정·TLS
-  (Let's Encrypt)·Traefik 라우팅이 자동이다. env는 Coolify UI에서 입력. Domains 필드에는
-  ingest 도메인 외에 `https://app.carbonlink.world:4180`도 추가한다(공백 없이!). env에는
+  (Let's Encrypt)·Traefik 라우팅이 자동이다. env는 Coolify UI에서 입력. Coolify는 compose
+  리소스에서 서비스별로 Domains 필드를 따로 갖는다 — `https://app.carbonlink.world:4180`은
+  반드시 **`dashboard-auth` 서비스의 Domains 필드**에 등록한다(공백 없이!). `token-forest`
+  서비스에 붙이면 oauth2-proxy를 우회해 대시보드가 인증 없이 그대로 노출된다. env에는
   `OAUTH2_PROXY_CLIENT_ID`·`OAUTH2_PROXY_CLIENT_SECRET`·`OAUTH2_PROXY_COOKIE_SECRET`과
   `TOKEN_FOREST_IDENTITY_HEADER`·`TOKEN_FOREST_TRUST_IDENTITY_HEADERS`도 포함해야 한다.
 - **대시보드 (`app.<도메인>`)**: oauth2-proxy(Google 로그인)가 앞단이다. compose의
