@@ -48,6 +48,11 @@ export default async function OverviewPage({
         {range.from} ~ {range.to}
       </p>
 
+      {/* 가장 첫 시각요소 = 팀 숲 (스펙: 통합 숲 장면) */}
+      <div className="mb-6">
+        <ForestScene />
+      </div>
+
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatTile
           label="총 토큰"
@@ -77,10 +82,6 @@ export default async function OverviewPage({
             <EmptyState message="이 기간에 기록된 토큰 사용량이 없습니다." />
           )}
         </Card>
-
-        <div className="lg:col-span-3">
-          <ForestScene />
-        </div>
 
         {/* Bottom status strip: Claude limits (left 2/3, grows with members) +
             data freshness (right 1/3, fixed-size). Freshness is pinned to
