@@ -125,11 +125,20 @@ mkdir -p "$CONFIG_DIR"
 if [ -f "$CONFIG_FILE" ] && [ "$KEEP_CONFIG" -eq 1 ]; then
   info "기존 설정 파일을 유지합니다 (--keep-config)."
 else
-  TM_FILE="$CONFIG_FILE" TM_URL="$SERVER_URL" TM_TOKEN="$TOKEN" "$NODE_BIN" <<'NODE_EOF'
+  TM_FILE="$CONFIG_FILE" TM_URL="$SERVER_URL" TM_TOKEN="$TOKEN" TM_DASH="$DASHBOARD_URL" "$NODE_BIN" <<'NODE_EOF'
 const fs = require("fs");
+// dashboardUrl: 메뉴바 앱의 "숲 열기" 목적지 (수집 호스트와 다를 수 있음).
 fs.writeFileSync(
   process.env.TM_FILE,
-  JSON.stringify({ serverUrl: process.env.TM_URL, token: process.env.TM_TOKEN }, null, 2) + "\\n",
+  JSON.stringify(
+    {
+      serverUrl: process.env.TM_URL,
+      token: process.env.TM_TOKEN,
+      dashboardUrl: process.env.TM_DASH || process.env.TM_URL,
+    },
+    null,
+    2,
+  ) + "\\n",
   { mode: 0o600 },
 );
 NODE_EOF
