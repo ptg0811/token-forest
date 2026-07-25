@@ -28,6 +28,7 @@ import { getNumStyle } from "@/app/_lib/numfmt";
 import { Card, EmptyState, PageHeader, RangeTabs } from "@/app/_components/ui";
 import { AccountLimits } from "@/app/_components/limits";
 import { MemberUsagePanel } from "@/app/_components/MemberUsagePanel";
+import GrowthCard from "./GrowthCard";
 import {
   ClaimButton,
   CopilotForm,
@@ -478,6 +479,8 @@ async function MemberView({
       <p className="-mt-2 text-sm text-[var(--text-muted)]">
         {member.name} · <code>{member.email}</code>
       </p>
+
+      <GrowthCard memberId={member.id} />
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <MeTabs active={activeTab} />
