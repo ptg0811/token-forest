@@ -36,7 +36,7 @@ export default async function ForestGrid() {
                 {t.name}
               </div>
               <div className="text-[10px] text-[var(--text-muted)]">
-                {`Lv${t.g.level}${t.g.streakDays >= 3 ? ` 🔥${t.g.streakDays}` : ""}`}
+                {`Lv${t.g.level} · ${t.g.gp} GP${t.g.streakDays >= 3 ? ` 🔥${t.g.streakDays}` : ""}`}
               </div>
             </div>
           ))}

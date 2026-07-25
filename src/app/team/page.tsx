@@ -43,7 +43,6 @@ import { Heatmap } from "@/app/_components/analytics/Heatmap";
 import { ModelDonut } from "@/app/_components/analytics/ModelDonut";
 import { WowTable } from "@/app/_components/analytics/WowTable";
 import { getNumStyle } from "@/app/_lib/numfmt";
-import ForestGrid from "@/app/_components/ForestGrid";
 
 const MS_PER_DAY = 86_400_000;
 
@@ -169,8 +168,6 @@ export default async function TeamPage({
       <p className="-mt-4 mb-6 text-xs text-[var(--text-muted)]">
         {range.from} ~ {range.to}
       </p>
-
-      <ForestGrid />
 
       <SectionHeading lead="팀이 AI 도구를 얼마나 넓게, 꾸준히 쓰게 되고 있는가">도입 확산</SectionHeading>
 
@@ -483,7 +480,7 @@ export default async function TeamPage({
           ) : (
             <EmptyState message="등록된 구성원이 없습니다." />
           )}
-          <Insight>노는 좌석(⬜)은 감석 후보, 사용이 소수에 몰려 있으면 확산 여지 — 증석·감석 양방향 판단에 씁니다.</Insight>
+          <Insight>노는 좌석(⬜)은 감석 후보, 사용이 소수에 몰려 있으면 확산 여지 — 증석·감석 양방향 판단에 씁니다. 이 표는 용량 계획용 지표로, 나무 성장과는 무관합니다.</Insight>
         </Card>
       </div>
     </div>

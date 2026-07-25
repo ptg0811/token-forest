@@ -2,7 +2,6 @@ export const dynamic = "force-dynamic";
 
 import {
   getDailyTokensByTool,
-  getMemberLeaderboard,
   getPeriodTotals,
   getSyncFreshness,
 } from "@/lib/queries";
@@ -20,10 +19,10 @@ import {
   RangeTabs,
   StatTile,
 } from "@/app/_components/ui";
-import { Leaderboard } from "@/app/_components/analytics/Leaderboard";
 import LimitsOverview from "@/app/_components/LimitsOverview";
 import { SyncNowButton } from "@/app/_components/SyncNowButton";
 import { getNumStyle } from "@/app/_lib/numfmt";
+import ForestGrid from "@/app/_components/ForestGrid";
 
 export default async function OverviewPage({
   searchParams,
@@ -34,11 +33,10 @@ export default async function OverviewPage({
   const range = rangeForDays(days);
   const numStyle = await getNumStyle();
 
-  const [totals, tokensByTool, freshness, leaderboard] = await Promise.all([
+  const [totals, tokensByTool, freshness] = await Promise.all([
     getPeriodTotals(range),
     getDailyTokensByTool(range),
     getSyncFreshness(),
-    getMemberLeaderboard(range),
   ]);
 
   return (
@@ -80,17 +78,9 @@ export default async function OverviewPage({
           )}
         </Card>
 
-        <Card
-          title="구성원 리더보드"
-          hint="토큰·보정 지수 전환 · 정렬 가능"
-          className="lg:col-span-3"
-        >
-          {leaderboard.length ? (
-            <Leaderboard rows={leaderboard} />
-          ) : (
-            <EmptyState message="이 기간에 구성원에 매핑된 사용 기록이 없습니다." />
-          )}
-        </Card>
+        <div className="lg:col-span-3">
+          <ForestGrid />
+        </div>
 
         {/* Bottom status strip: Claude limits (left 2/3, grows with members) +
             data freshness (right 1/3, fixed-size). Freshness is pinned to
