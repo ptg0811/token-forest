@@ -15,13 +15,13 @@ export const metadata: Metadata = {
 const STEPS = [
   {
     n: "1",
-    title: "Tailscale 초대 수락",
-    body: "관리자에게 Tailscale 초대를 요청하세요(Slack). 초대 메일의 링크가 앱 설치와 로그인까지 자동으로 안내하며, 초대된 계정은 승인 절차 없이 바로 연결됩니다. 연결 후 이 대시보드가 열리면 성공입니다 — 이 페이지를 보고 있다면 이 단계는 이미 끝난 것입니다.",
+    title: "대시보드 로그인",
+    body: "관리자가 공유한 대시보드 주소를 브라우저에서 열고 회사 Google 계정으로 로그인합니다. 별도 앱 설치나 초대 수락은 필요 없습니다.",
   },
   {
     n: "2",
     title: "대시보드 접속",
-    body: "브라우저에서 대시보드를 엽니다. 접속이 되면 사내 네트워크 연결이 정상입니다.",
+    body: "브라우저에서 대시보드를 엽니다. 로그인이 되면 접속 환경은 정상입니다.",
   },
   {
     n: "3",
@@ -107,25 +107,22 @@ const TROUBLESHOOT: { q: string; a: React.ReactNode }[] = [
     a: (
       <>
         <code className="rounded bg-black/5 px-1 dark:bg-white/10">~/.token-forest/run.sh</code> 를
-        터미널에서 직접 실행해 출력을 확인하세요. tailnet 연결과{" "}
+        터미널에서 직접 실행해 출력을 확인하세요.{" "}
         <code className="rounded bg-black/5 px-1 dark:bg-white/10">~/.config/token-forest/config.json</code>{" "}
-        의 서버 주소·토큰이 올바른지 점검하면 됩니다. 여러 번 실행해도 서버가 중복을 합치므로 누적되지
+        의 서버 주소(serverUrl)·토큰(token)이 올바른지 점검하면 됩니다. 여러 번 실행해도 서버가 중복을 합치므로 누적되지
         않습니다.
       </>
     ),
   },
   {
-    q: "SSL 인증서 오류가 나요",
+    q: "로그인이 안 돼요",
     a: (
       <>
-        <strong>대시보드 서버 자체에서</strong> ts.net 주소를 열면 같은 서버의 다른
-        서비스가 응답해 인증서 오류나 503이 날 수 있습니다 — 서버에서는{" "}
-        <code className="rounded bg-black/5 px-1 dark:bg-white/10">http://localhost:4700</code> 을
-        쓰세요. ts.net 주소는 <strong>다른 기기(노트북·맥미니)에서만</strong> 유효합니다. 다른
-        기기에서도 인증서 오류가 나면 관리자가{" "}
-        <span className="whitespace-nowrap">login.tailscale.com/admin/dns</span> 에서{" "}
-        <strong>HTTPS Certificates</strong> 를 활성화해야 합니다 (첫 접속은 인증서 발급으로 몇 초
-        걸릴 수 있습니다).
+        회사 Google 계정으로 로그인했는지 확인하세요. 브라우저에 개인 Google 계정만 로그인돼
+        있으면{" "}
+        <span className="whitespace-nowrap">accounts.google.com</span> 에서 회사 계정을
+        추가하거나 전환한 뒤 다시 시도합니다. 계정이 맞는데도 접근이 거부되면 관리자에게
+        문의하세요.
       </>
     ),
   },
