@@ -49,7 +49,7 @@ import { WowTable } from "@/app/_components/analytics/WowTable";
 import { getNumStyle } from "@/app/_lib/numfmt";
 import TeamScorecard from "@/app/_components/analytics/TeamScorecard";
 import MaturityBanner from "@/app/_components/analytics/MaturityBanner";
-import { overallMaturity } from "@/lib/maturity";
+import { maturityFromParts } from "@/lib/team-maturity";
 import {
   adoptionLeadDays,
   cacheReuseRatio,
@@ -229,32 +229,13 @@ export default async function TeamPage({
           .reduce((acc, weeks) => acc.map((v, i) => v + weeks[i]), [0, 0, 0, 0])
           .map((sum) => sum / onboarding.length);
 
-  // ---- AI 사용 성숙도 배너 조립 ----
-  // 최신 주 값 추출 헬퍼 (시리즈 마지막 point의 중앙값)
-  const latestMedian = (series: WeeklySeriesPoint[]): number | null =>
-    series.length ? series[series.length - 1].median : null;
-
-  const latestAdoption = adoptionRate.length ? adoptionRate[adoptionRate.length - 1].activePct : null;
-  const cacheHitMedianPct =
-    latestMedian(cacheHitSeries) != null ? latestMedian(cacheHitSeries)! * 100 : null;
-  // matrix.tools is a static catalog (queries.ts — always [cursor, claude_code,
-  // openai, copilot], length 4) so it can't measure actual breadth. Count tools
-  // with real activity in range instead.
-  const toolCount = toolSummary.filter((t) => t.tokens > 0 || t.requests > 0).length;
-
-  // 신모델 채택 리드타임 — 최근 도구 도입에서 관측된 것 중 최단(가장 빠른 흡수).
-  // 미도달(null) 값은 아직 절반 채택을 못 봤다는 뜻이라 "가장 빠름" 후보에서 제외.
-  const observedLeadDays = modelAdoption
-    .map((m) => m.leadDays)
-    .filter((d): d is number => d != null);
-  const newModelLeadDays = observedLeadDays.length ? Math.min(...observedLeadDays) : null;
-
-  const maturity = overallMaturity({
-    habit: latestAdoption,
-    efficiency: cacheHitMedianPct,
-    skill: latestMedian(sessionDepthSeries),
-    breadth: toolCount,
-    newModelLeadDays,
+  // ---- AI 사용 성숙도 배너 조립 (계산 로직은 team-maturity.ts와 공유) ----
+  const maturity = maturityFromParts({
+    adoptionRate,
+    scoreWeekly,
+    toolSummary,
+    modelAdoption,
+    teamSize,
   });
 
   const heatmapHasData = heatmap.some((row) => row.some((v) => v > 0));

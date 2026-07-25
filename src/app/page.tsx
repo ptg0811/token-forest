@@ -23,6 +23,8 @@ import LimitsOverview from "@/app/_components/LimitsOverview";
 import { SyncNowButton } from "@/app/_components/SyncNowButton";
 import { getNumStyle } from "@/app/_lib/numfmt";
 import ForestScene from "@/app/_components/ForestScene";
+import MaturityBanner from "@/app/_components/analytics/MaturityBanner";
+import { getTeamMaturity } from "@/lib/team-maturity";
 
 export default async function OverviewPage({
   searchParams,
@@ -33,10 +35,11 @@ export default async function OverviewPage({
   const range = rangeForDays(days);
   const numStyle = await getNumStyle();
 
-  const [totals, tokensByTool, freshness] = await Promise.all([
+  const [totals, tokensByTool, freshness, maturity] = await Promise.all([
     getPeriodTotals(range),
     getDailyTokensByTool(range),
     getSyncFreshness(),
+    getTeamMaturity(range),
   ]);
 
   return (
@@ -51,6 +54,10 @@ export default async function OverviewPage({
       {/* 가장 첫 시각요소 = 팀 숲 (스펙: 통합 숲 장면) */}
       <div className="mb-6">
         <ForestScene />
+      </div>
+
+      <div className="mb-6">
+        <MaturityBanner result={maturity} href="/team" />
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">

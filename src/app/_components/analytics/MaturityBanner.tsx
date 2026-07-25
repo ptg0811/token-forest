@@ -1,10 +1,19 @@
+import Link from "next/link";
 import { STAGE_LABELS, type MaturityResult, type Axis } from "@/lib/maturity";
 
 const AXIS_LABEL: Record<Axis, string> = {
   habit: "습관화", efficiency: "효율", skill: "숙련", breadth: "확장",
 };
 
-export default function MaturityBanner({ result }: { result: MaturityResult }) {
+export default function MaturityBanner({
+  result,
+  href,
+}: {
+  result: MaturityResult;
+  // 상세 화면(팀 분석)으로의 링크 — 홈처럼 요약만 보여주는 화면에서만 넘긴다.
+  // /team 자신은 이미 그 화면이므로 생략.
+  href?: string;
+}) {
   return (
     <div className="rounded-xl border border-[var(--border)] bg-gradient-to-br from-[color-mix(in_srgb,var(--accent)_12%,var(--surface-1))] to-[var(--surface-1)] p-5">
       <div className="flex items-baseline justify-between">
@@ -34,6 +43,14 @@ export default function MaturityBanner({ result }: { result: MaturityResult }) {
       <p className="mt-1 text-[11px] text-[var(--text-muted)]">
         ※ 도구 <strong>사용</strong> 성숙도이며 배포 성과(DORA delivery)가 아닙니다.
       </p>
+      {href && (
+        <Link
+          href={href}
+          className="mt-2 inline-block text-xs font-medium text-[var(--accent-strong)] hover:underline"
+        >
+          자세히 → 팀 분석
+        </Link>
+      )}
       <details className="mt-2 text-[11px] text-[var(--text-muted)]">
         <summary className="cursor-pointer select-none">이 단계란?</summary>
         <div className="mt-2 space-y-1">
