@@ -11,7 +11,7 @@ struct GrowthRow: View {
                 else if growth.idleDays >= 3 { Text("💤\(growth.idleDays)").font(.subheadline) }
                 Spacer()
             }
-            Gauge(fraction: gaugeFraction(gp: growth.gp, toNext: growth.toNextStage), tint: .green)
+            TFGauge(fraction: gaugeFraction(gp: growth.gp, toNext: growth.toNextStage), tint: .green)
             Text(gpLine).font(.caption).foregroundStyle(.secondary)
             if let m = growth.nextMilestone {
                 Text("다음 \(m.label)까지 \(m.remaining)").font(.caption).foregroundStyle(.green)
@@ -29,7 +29,7 @@ struct GrowthRow: View {
     }
 }
 
-struct Gauge: View {
+struct TFGauge: View {
     let fraction: Double
     let tint: Color
 

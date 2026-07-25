@@ -48,6 +48,7 @@ final class SummaryStore: ObservableObject {
 
     func start() {
         refresh()
+        guard timer == nil else { return }
         timer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
             guard let self else { return }
             Task { @MainActor in self.refresh() }

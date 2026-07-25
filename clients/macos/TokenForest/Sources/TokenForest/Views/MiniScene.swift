@@ -114,22 +114,22 @@ struct AnimalLayer: View {
     let band: TimeBand
 
     var body: some View {
-        if band == .night {
-            OwlLayer()
-        } else {
-            SquirrelLayer()
+        switch animalFor(band: band) {
+        case "🦉": OwlLayer(emoji: "🦉")
+        default: SquirrelLayer(emoji: animalFor(band: band))
         }
     }
 }
 
 struct OwlLayer: View {
+    let emoji: String
     @State private var flipped = false
     var body: some View {
         VStack {
             Spacer()
             HStack {
                 Spacer()
-                Text("🦉")
+                Text(emoji)
                     .font(.system(size: 15))
                     .scaleEffect(x: flipped ? -1 : 1)
                     .animation(.easeInOut(duration: 0.4).delay(5).repeatForever(autoreverses: true), value: flipped)
@@ -142,6 +142,7 @@ struct OwlLayer: View {
 }
 
 struct SquirrelLayer: View {
+    let emoji: String
     // keyframeAnimator: 32초 루프 — 질주 구간만 이동+홉, 정지 구간 유지
     struct Pose {
         var x: CGFloat = -0.1
@@ -151,7 +152,7 @@ struct SquirrelLayer: View {
 
     var body: some View {
         GeometryReader { geo in
-            Text("🐿️")
+            Text(emoji)
                 .font(.system(size: 15))
                 .keyframeAnimator(initialValue: Pose(), repeating: true) { view, pose in
                     view

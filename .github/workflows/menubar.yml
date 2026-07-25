@@ -21,9 +21,8 @@ jobs:
       - name: Test
         run: swift test
       - name: Bundle .app
-        run: ./scripts/make-app.sh || echo "make-app.sh not yet present (Task 4)"
+        run: ./scripts/make-app.sh
       - name: Upload artifact
-        if: hashFiles('clients/macos/TokenForest/build/TokenForest.zip') != ''
         uses: actions/upload-artifact@v4
         with:
           name: TokenForest-app
