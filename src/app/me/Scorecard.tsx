@@ -1,4 +1,6 @@
 import { Card } from "@/app/_components/ui";
+import { InfoTip } from "@/app/_components/InfoTip";
+import { METRIC_INFO } from "@/lib/metric-info";
 import { getScorecardSums, getGrowthDays } from "@/lib/queries";
 import { connectDb, Member } from "@/lib/db";
 import { computeGrowth } from "@/lib/growth";
@@ -92,20 +94,20 @@ export default async function Scorecard({ memberId }: { memberId: string }) {
         </section>
         <section>
           <h3 className="text-xs font-semibold text-[var(--text-muted)]">효율</h3>
-          <p>캐시 적중률 {pct(myCache)}{delta(myCache, teamCache, true)} <span className="text-[var(--text-muted)]">팀 {pct(teamCache)}</span></p>
-          <p>캐시 재사용 배율 {num(myReuse)}{delta(myReuse, med((m) => cacheReuseRatio(m.total)), true)} · 컨텍스트 수율 {pct(myYield)}{delta(myYield, med((m) => contextYield(m.total)), true)}</p>
+          <p>캐시 적중률<InfoTip info={METRIC_INFO.cacheHit} /> {pct(myCache)}{delta(myCache, teamCache, true)} <span className="text-[var(--text-muted)]">팀 {pct(teamCache)}</span></p>
+          <p>캐시 재사용 배율<InfoTip info={METRIC_INFO.cacheReuse} /> {num(myReuse)}{delta(myReuse, med((m) => cacheReuseRatio(m.total)), true)} · 컨텍스트 수율<InfoTip info={METRIC_INFO.contextYield} /> {pct(myYield)}{delta(myYield, med((m) => contextYield(m.total)), true)}</p>
           <p className="text-xs text-[var(--text-muted)]">재사용 배율과 수율은 함께 보세요 — 세션을 길게 끌면 배율은 오르지만 수율이 떨어집니다.</p>
         </section>
         <section>
           <h3 className="text-xs font-semibold text-[var(--text-muted)]">숙련</h3>
-          <p>세션 깊이 {num(sessionDepth(mine.claude))} 턴/세션 <span className="text-[var(--text-muted)]">(Claude Code · 방향 없음 — 작업 스타일)</span></p>
+          <p>세션 깊이<InfoTip info={METRIC_INFO.sessionDepth} /> {num(sessionDepth(mine.claude))} 턴/세션 <span className="text-[var(--text-muted)]">(Claude Code · 방향 없음 — 작업 스타일)</span></p>
           {myAnatomy && (
             <p>요청 1건 구성 — 입력 {Math.round(myAnatomy.inputPerReq).toLocaleString()} · 캐시 {Math.round(myAnatomy.cachePerReq).toLocaleString()} · 생성 {Math.round(myAnatomy.outputPerReq).toLocaleString()} 토큰</p>
           )}
         </section>
         <section>
           <h3 className="text-xs font-semibold text-[var(--text-muted)]">확장</h3>
-          <p>도구 다양성 {num(toolEntropy(mine.byTool), 2)}{delta(toolEntropy(mine.byTool), med((m) => toolEntropy(m.byTool)), true)} · 사용 모델 {mine.models.size}종</p>
+          <p>도구 다양성<InfoTip info={METRIC_INFO.toolBreadth} /> {num(toolEntropy(mine.byTool), 2)}{delta(toolEntropy(mine.byTool), med((m) => toolEntropy(m.byTool)), true)} · 사용 모델 {mine.models.size}종</p>
         </section>
         {hints.length > 0 && (
           <ul className="rounded-lg bg-[var(--surface-2)] px-3 py-2 text-xs">

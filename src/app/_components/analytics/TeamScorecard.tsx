@@ -2,6 +2,9 @@
 
 import { SmallTrend } from "./TeamCharts";
 import { EmptyState } from "@/app/_components/ui";
+import { InfoTip } from "@/app/_components/InfoTip";
+import { METRIC_INFO } from "@/lib/metric-info";
+import type { MetricInfo } from "@/lib/metric-info";
 import type { WeeklySeriesPoint } from "@/lib/scorecard";
 
 // 팀 AI 활용 스코어카드 — 4축(습관·효율·숙련·확장), 원값만 표시(점수화 없음).
@@ -47,6 +50,7 @@ function TrendPair({
   tickFormatter,
   format,
   yWidth,
+  info,
 }: {
   title: string;
   data: WeeklySeriesPoint[];
@@ -54,11 +58,15 @@ function TrendPair({
   tickFormatter: (v: number) => string;
   format: (v: number) => string;
   yWidth: number;
+  info?: MetricInfo;
 }) {
   if (!data.length) return null;
   return (
     <div>
-      <div className="mb-1 text-xs font-medium text-[var(--text-secondary)]">{title}</div>
+      <div className="mb-1 flex items-center text-xs font-medium text-[var(--text-secondary)]">
+        {title}
+        {info && <InfoTip info={info} />}
+      </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <SmallTrend
           data={data}
@@ -105,7 +113,10 @@ export default function TeamScorecard({
             <span className="text-2xl font-semibold tabular-nums text-[var(--text-primary)]">
               {pct(cacheSavingsPct)}
             </span>
-            <span className="text-xs text-[var(--text-muted)]">캐시 절감률</span>
+            <span className="flex items-center text-xs text-[var(--text-muted)]">
+              캐시 절감률
+              <InfoTip info={METRIC_INFO.cacheSavings} />
+            </span>
           </p>
         ) : (
           <p className="mt-1 text-xs text-[var(--text-muted)]">이 기간 절감 데이터가 없습니다.</p>
@@ -121,6 +132,7 @@ export default function TeamScorecard({
             tickFormatter={pctTick}
             format={pct}
             yWidth={40}
+            info={METRIC_INFO.cacheHit}
           />
           <TrendPair
             title="캐시 재사용 배율"
@@ -128,6 +140,7 @@ export default function TeamScorecard({
             tickFormatter={ratio1}
             format={ratio2}
             yWidth={36}
+            info={METRIC_INFO.cacheReuse}
           />
           <TrendPair
             title="컨텍스트 수율"
@@ -136,6 +149,7 @@ export default function TeamScorecard({
             tickFormatter={pctTick}
             format={pct}
             yWidth={40}
+            info={METRIC_INFO.contextYield}
           />
           <TrendPair
             title="프리미엄 모델 비중"
@@ -144,6 +158,7 @@ export default function TeamScorecard({
             tickFormatter={pctTick}
             format={pct}
             yWidth={40}
+            info={METRIC_INFO.premiumShare}
           />
         </div>
         <p className="mt-2 text-[11px] text-[var(--text-muted)]">
@@ -160,6 +175,7 @@ export default function TeamScorecard({
           tickFormatter={ratio1}
           format={ratio1}
           yWidth={36}
+          info={METRIC_INFO.sessionDepth}
         />
         <p className="mt-1 text-[11px] text-[var(--text-muted)]">
           무방향 지표입니다 — 값이 높거나 낮다고 좋고 나쁨을 뜻하지 않습니다. 작업 스타일의 차이로 읽으세요.
@@ -222,43 +238,14 @@ export default function TeamScorecard({
       )}
 
       <section>
-        <h3 className="text-xs font-semibold text-[var(--text-muted)]">확장</h3>
+        <h3 className="flex items-center text-xs font-semibold text-[var(--text-muted)]">
+          확장
+          <InfoTip info={METRIC_INFO.toolBreadth} />
+        </h3>
         <p className="mt-1 text-xs text-[var(--text-muted)]">
           도구·모델 다양성 추세는 위 &ldquo;도입 확산&rdquo; 섹션을 참조하세요 (도입 매트릭스 · 주간 활성 사용자).
         </p>
       </section>
-
-      <details className="rounded-lg bg-[var(--surface-2)] px-3 py-2 text-xs text-[var(--text-secondary)]">
-        <summary className="cursor-pointer select-none font-medium">이 지표들이란?</summary>
-        <div className="mt-2 space-y-2">
-          <p>
-            <strong className="text-[var(--text-primary)]">AI를 잘 사용한다</strong> = ① 일상
-            습관으로 정착시키고(습관화) ② 같은 일을 자원 효율적으로 처리하며(효율) ③ 도구를 깊게
-            다루고(숙련) ④ 활용 범위를 넓혀가는 것(확장) — 4축 모두 원값 표시, 점수화·합산·순위화는
-            하지 않습니다.
-          </p>
-          <ul className="list-disc space-y-1 pl-4">
-            <li>습관화 — 도입률 · 주간 활성 · 온보딩 램프업(온보딩 후 주차별 활동일수).</li>
-            <li>
-              효율 — 캐시 재사용 배율(cacheRead/cacheCreation) · 컨텍스트 수율(output/(input+cacheRead)) ·
-              캐시 절감률(절감 가중치/(실소비+절감 가중치), % 표시) · 프리미엄 모델 비중(프리미엄 토큰/전체 토큰).
-            </li>
-            <li>
-              숙련 — 세션 깊이(requests/sessions, Claude Code 한정) · 신모델 채택 리드타임(전역 최초
-              사용일 → 팀 절반(ceil(인원/2)) 도달일까지의 일수).
-            </li>
-            <li>확장 — 도구 사용량 가중 엔트로피 · 사용 모델 종 수 (도입 매트릭스·주간 활성으로 시각화).</li>
-          </ul>
-          <p className="font-medium text-[var(--text-primary)]">한계</p>
-          <ul className="list-disc space-y-1 pl-4">
-            <li>&ldquo;창의성&rdquo; 자체는 측정할 수 없습니다 — 도구·모델 다양성과 신기능 채택 속도라는 범위의 넓이만 프록시로 봅니다.</li>
-            <li>Copilot 등 토큰을 보고하지 않는 도구는 토큰 기반 지표에서 자동 제외됩니다(requests만 집계).</li>
-            <li>세션 수는 Claude Code 업로더만 기록합니다 — 세션 깊이는 Claude Code 한정 지표입니다.</li>
-            <li>캐시 적중률은 불필요한 재호출로도 부풀릴 수 있어 완전히 방어되지 않는 알려진 한계입니다.</li>
-            <li>중앙값 차트의 음영(IQR)은 개인 특정 방지를 위해 활성 인원이 8명 이상인 주에만 표시됩니다.</li>
-          </ul>
-        </div>
-      </details>
     </div>
   );
 }

@@ -48,6 +48,8 @@ import { ModelDonut } from "@/app/_components/analytics/ModelDonut";
 import { WowTable } from "@/app/_components/analytics/WowTable";
 import { getNumStyle } from "@/app/_lib/numfmt";
 import TeamScorecard from "@/app/_components/analytics/TeamScorecard";
+import MaturityBanner from "@/app/_components/analytics/MaturityBanner";
+import { overallMaturity } from "@/lib/maturity";
 import {
   adoptionLeadDays,
   cacheReuseRatio,
@@ -227,6 +229,24 @@ export default async function TeamPage({
           .reduce((acc, weeks) => acc.map((v, i) => v + weeks[i]), [0, 0, 0, 0])
           .map((sum) => sum / onboarding.length);
 
+  // ---- AI 사용 성숙도 배너 조립 ----
+  // 최신 주 값 추출 헬퍼 (시리즈 마지막 point의 중앙값)
+  const latestMedian = (series: WeeklySeriesPoint[]): number | null =>
+    series.length ? series[series.length - 1].median : null;
+
+  const latestAdoption = adoptionRate.length ? adoptionRate[adoptionRate.length - 1].activePct : null;
+  const cacheHitMedianPct =
+    latestMedian(cacheHitSeries) != null ? latestMedian(cacheHitSeries)! * 100 : null;
+  // getAdoptionMatrix always returns `tools: string[]` (queries.ts) — no fallback needed.
+  const toolCount = matrix.tools.length;
+
+  const maturity = overallMaturity({
+    habit: latestAdoption,
+    efficiency: cacheHitMedianPct,
+    skill: latestMedian(sessionDepthSeries),
+    breadth: toolCount,
+  });
+
   const heatmapHasData = heatmap.some((row) => row.some((v) => v > 0));
 
   const requestsOnlyTools = toolSummary
@@ -374,6 +394,9 @@ export default async function TeamPage({
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card title="AI 활용 스코어카드" hint="주별 · 풀드/중앙값 병기 · 순위 없음" className="lg:col-span-2">
+          <div className="mb-6">
+            <MaturityBanner result={maturity} />
+          </div>
           {scoreWeekly.length ? (
             <TeamScorecard
               cacheHit={cacheHitSeries}
