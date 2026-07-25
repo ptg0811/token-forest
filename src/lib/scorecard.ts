@@ -1,0 +1,128 @@
+// AI 활용 스코어카드 — 순수 계산. 전 지표 0/0 가드(null 반환), 점수화·합산 없음.
+// 스펙: docs/superpowers/specs/2026-07-26-ai-scorecard-design.md
+
+export type ScoreSums = {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheCreation: number;
+  requests: number;
+  sessions: number;
+};
+
+export const EMPTY_SUMS: ScoreSums = {
+  input: 0, output: 0, cacheRead: 0, cacheCreation: 0, requests: 0, sessions: 0,
+};
+
+export function addSums(a: ScoreSums, b: Partial<ScoreSums>): ScoreSums {
+  return {
+    input: a.input + (b.input ?? 0),
+    output: a.output + (b.output ?? 0),
+    cacheRead: a.cacheRead + (b.cacheRead ?? 0),
+    cacheCreation: a.cacheCreation + (b.cacheCreation ?? 0),
+    requests: a.requests + (b.requests ?? 0),
+    sessions: a.sessions + (b.sessions ?? 0),
+  };
+}
+
+function ratio(num: number, den: number): number | null {
+  return den > 0 ? num / den : null;
+}
+
+// A1 캐시 재사용 배율 — 캐시에 적재한 토큰이 몇 번 재사용되나.
+export function cacheReuseRatio(s: ScoreSums): number | null {
+  return ratio(s.cacheRead, s.cacheCreation);
+}
+
+// G4 컨텍스트 수율 — 읽은 전체 컨텍스트 대비 생성량. A1과 견제 쌍.
+export function contextYield(s: ScoreSums): number | null {
+  return ratio(s.output, s.input + s.cacheRead);
+}
+
+// G2 세션 깊이 — 세션당 에이전트 턴 수 (claude_code 합만 넣을 것). 무방향 지표.
+export function sessionDepth(s: ScoreSums): number | null {
+  return ratio(s.requests, s.sessions);
+}
+
+// G1 요청 해부 — 요청 1건당 평균 구성 3성분.
+export function requestAnatomy(
+  s: ScoreSums,
+): { inputPerReq: number; cachePerReq: number; outputPerReq: number } | null {
+  if (s.requests <= 0) return null;
+  return {
+    inputPerReq: s.input / s.requests,
+    cachePerReq: s.cacheRead / s.requests,
+    outputPerReq: s.output / s.requests,
+  };
+}
+
+// A2 캐시 절감률 — 절감 가중치 / (실소비 + 절감). 가중치 산출은 쿼리 측에서
+// rateFamily 로 계산해 넘긴다 (여긴 순수 비율만). % 가 아닌 0..1.
+export function cacheSavingsRate(saved: number, spent: number): number | null {
+  return ratio(saved, spent + saved);
+}
+
+// D2 도구 엔트로피 — 사용량 가중 Shannon, log2(k) 정규화 0..1. 단일 도구 = 0.
+export function toolEntropy(byTool: Record<string, number>): number | null {
+  const vals = Object.values(byTool).filter((v) => v > 0);
+  const total = vals.reduce((a, b) => a + b, 0);
+  if (total <= 0) return null;
+  if (vals.length === 1) return 0;
+  const h = vals.reduce((acc, v) => {
+    const p = v / total;
+    return acc - p * Math.log2(p);
+  }, 0);
+  return h / Math.log2(vals.length);
+}
+
+// --- 팀 집계 ---
+
+export function median(xs: number[]): number | null {
+  if (xs.length === 0) return null;
+  const s = [...xs].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+}
+
+function quantile(sorted: number[], q: number): number {
+  const pos = (sorted.length - 1) * q;
+  const lo = Math.floor(pos);
+  const hi = Math.ceil(pos);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+}
+
+export function iqrBand(xs: number[]): { p25: number; p75: number } | null {
+  if (xs.length === 0) return null;
+  const s = [...xs].sort((a, b) => a - b);
+  return { p25: quantile(s, 0.25), p75: quantile(s, 0.75) };
+}
+
+// 개인 특정 방지 — 활성 8명 미만이면 분포 밴드 미표시 (스펙).
+export function showBand(activeMembers: number): boolean {
+  return activeMembers >= 8;
+}
+
+// --- D1 신모델 채택 리드타임 ---
+// firstDates: 멤버별 해당 모델 최초 사용일(정렬 불문). 전역 최초일부터
+// ceil(teamSize/2)번째 멤버 도달일까지의 일수. 미도달 → null.
+export function adoptionLeadDays(firstDates: string[], teamSize: number): number | null {
+  if (firstDates.length === 0 || teamSize <= 0) return null;
+  const sorted = [...firstDates].sort();
+  const needed = Math.ceil(teamSize / 2);
+  if (sorted.length < needed) return null;
+  const first = Date.parse(sorted[0]);
+  const half = Date.parse(sorted[needed - 1]);
+  return Math.round((half - first) / 86_400_000);
+}
+
+// --- D3 온보딩 램프업 ---
+// onboardedAt 기준 주차(0-index)별 활동일 수, weeks개 고정 길이.
+export function rampWeeks(activeDates: string[], onboardedAt: string, weeks = 4): number[] {
+  const start = Date.parse(onboardedAt);
+  const out = new Array<number>(weeks).fill(0);
+  for (const d of activeDates) {
+    const idx = Math.floor((Date.parse(d) - start) / (7 * 86_400_000));
+    if (idx >= 0 && idx < weeks) out[idx]++;
+  }
+  return out;
+}
