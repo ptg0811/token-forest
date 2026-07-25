@@ -61,11 +61,11 @@ final class SummaryStore: ObservableObject {
 
     private func load() async {
         guard let cfg = try? loadConfig() else {
-            state = .needsConfig
+            enterNeedsConfig()
             return
         }
         guard let url = URL(string: cfg.serverUrl + "/api/me/summary") else {
-            state = .needsConfig
+            enterNeedsConfig()
             return
         }
         var req = URLRequest(url: url)
@@ -94,5 +94,19 @@ final class SummaryStore: ObservableObject {
     var dashboardUrl: String {
         let cfg = try? loadConfig()
         return cfg?.dashboardUrl ?? cfg?.serverUrl ?? ""
+    }
+
+    /// 설치 직후 업로더가 아직 설정 파일을 쓰지 않은 경우를 대비해,
+    /// needsConfig 상태 진입 시 5분 타이머보다 빠르게 한 번 재시도한다.
+    private func enterNeedsConfig() {
+        state = .needsConfig
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(30))
+            await self?.retryIfStillNeedsConfig()
+        }
+    }
+
+    private func retryIfStillNeedsConfig() async {
+        if case .needsConfig = state { await load() }
     }
 }
