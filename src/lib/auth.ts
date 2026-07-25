@@ -2,13 +2,14 @@ import { cookies, headers } from "next/headers";
 import { connectDb, Member } from "@/lib/db";
 
 // Who is looking at the dashboard?
-// Primary: `tailscale serve` injects the requester's tailnet identity as the
-// Tailscale-User-Login header (their login email) — zero-friction on the
-// 10-person internal tailnet. Fallback: a member pastes their ingest token
-// once and we keep it in an httpOnly cookie (SESSION_COOKIE).
+// Primary: The fronting proxy injects the requester's email in the header
+// named by TOKEN_FOREST_IDENTITY_HEADER (default: tailscale-user-login).
+// This is zero-friction when the proxy (tailscale serve, oauth2-proxy, etc.)
+// is trusted. Fallback: a member pastes their ingest token once and we keep
+// it in an httpOnly cookie (SESSION_COOKIE).
 //
 // - "member":    recognized (headers/cookie matched a member document)
-// - "unknown":   we know an identity (tailnet email) but no member exists yet
+// - "unknown":   we know an identity email but no member exists yet
 //                → the /me page offers self-registration for that email
 // - "anonymous": no identity signal at all (e.g. direct localhost access)
 
@@ -54,21 +55,16 @@ export async function getViewer(): Promise<Viewer> {
   // they bail static prerendering out to dynamic rendering. Connecting first
   // would throw during `next build` inside Docker, where no DB exists.
 
-  // Identity headers are only proof of identity when the app is actually
-  // fronted by `tailscale serve` — a direct connection (misconfigured port
-  // publish, local process) could forge them. Deployments must opt in
-  // explicitly; docker-compose sets this for the tailscale-fronted setup.
-  // Note: on a shared host, shell users can still hit the loopback port
-  // directly — acceptable here because they already have direct DB access.
-  const trustHeaders = process.env.TOKEN_FOREST_TRUST_TAILSCALE_HEADERS === "1";
+  // Trust gate (TOKEN_FOREST_TRUST_IDENTITY_HEADERS / legacy
+  // TOKEN_FOREST_TRUST_TAILSCALE_HEADERS) and header name
+  // (TOKEN_FOREST_IDENTITY_HEADER, default tailscale-user-login) are env-driven.
+  // The fronting proxy must overwrite the header to prevent forgery.
   const h = await headers();
   const cookieToken = (await cookies()).get(SESSION_COOKIE)?.value;
-  const tailscaleLogin = trustHeaders
-    ? h.get("tailscale-user-login")?.trim().toLowerCase()
-    : undefined;
-  if (tailscaleLogin && tailscaleLogin.includes("@")) {
+  const login = identityEmail((n) => h.get(n));
+  if (login) {
     await connectDb();
-    const member = await Member.findOne({ email: tailscaleLogin }).lean();
+    const member = await Member.findOne({ email: login }).lean();
     if (member) {
       return {
         status: "member",
@@ -80,7 +76,7 @@ export async function getViewer(): Promise<Viewer> {
         },
       };
     }
-    return { status: "unknown", email: tailscaleLogin };
+    return { status: "unknown", email: login };
   }
 
   if (cookieToken) {
