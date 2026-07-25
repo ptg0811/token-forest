@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { Card, PageHeader } from "@/app/_components/ui";
 
 export const metadata: Metadata = {
-  title: "설치 안내 · Tokenizer",
+  title: "설치 안내 · token-forest",
   description: "개인 Claude Code 계정 사용량 업로더 설치 방법",
 };
 
@@ -21,7 +21,7 @@ const STEPS = [
   {
     n: "2",
     title: "대시보드 접속",
-    body: "브라우저에서 Tokenizer 대시보드를 엽니다. 접속이 되면 사내 네트워크 연결이 정상입니다.",
+    body: "브라우저에서 대시보드를 엽니다. 접속이 되면 사내 네트워크 연결이 정상입니다.",
   },
   {
     n: "3",

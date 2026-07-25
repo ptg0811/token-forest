@@ -22,8 +22,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tokenizer",
-  description: "Tokenizer (Powered by RELAX) — 구성원별 AI 도구 토큰 사용량·도입률 분석",
+  title: "token-forest",
+  description: "token-forest — 팀의 AI 도구 사용량을 나무로 키우는 대시보드",
 };
 
 export default async function RootLayout({
@@ -41,10 +41,10 @@ export default async function RootLayout({
         <NumStyleProvider initial={numStyle}>
           <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--surface-1)]/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur">
             <div className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-3">
-              <Link href="/" className="flex items-center gap-2.5" aria-label="Tokenizer — 홈">
+              <Link href="/" className="flex items-center gap-2.5" aria-label="token-forest — 홈">
                 <Image
-                  src="/tokenizer-emblem.png"
-                  alt=""
+                  src="/forest-emblem.png"
+                  alt="token-forest"
                   width={32}
                   height={32}
                   className="h-8 w-8 rounded-md border border-[var(--border)] bg-[var(--surface-2)] object-contain p-0.5"
@@ -52,10 +52,7 @@ export default async function RootLayout({
                 />
                 <span className="flex flex-col leading-none">
                   <span className="text-[15px] font-bold uppercase tracking-[0.18em] text-[var(--text-primary)]">
-                    Tokenizer
-                  </span>
-                  <span className="mt-0.5 text-[9px] font-medium uppercase tracking-[0.14em] text-[var(--signal)]/80">
-                    Powered by RELAX
+                    token-forest
                   </span>
                 </span>
               </Link>
