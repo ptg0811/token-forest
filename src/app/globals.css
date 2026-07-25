@@ -1,41 +1,40 @@
 @import "tailwindcss";
 
-/* Force dark: switch Tailwind's dark variant from the default media query to a
-   class strategy so the 92 existing `dark:` utilities apply whenever <html> has
-   the `dark` class, independent of the viewer's OS setting. */
+/* Dark variant kept as class strategy for 92 existing `dark:` utilities.
+   `.dark` class no longer applied; theme is light-fixed (Calm Forest). */
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  /* Dark Knight palette — deep-black + gunmetal, cold steel-blue + amber. */
-  --background: #0a0b0d; /* near-black (cool) */
-  --foreground: #e6e8eb;
+  /* 차분한 숲 팔레트 — 종이·이끼 톤, 데이터 우선. */
+  --background: #f6f4ec; /* 종이 (warm paper) */
+  --foreground: #2f3a31;
 
-  --surface-1: #16181c; /* gunmetal panel */
-  --surface-2: #1e2126; /* raised / hover */
-  --border: #2a2e35; /* steel hairline */
+  --surface-1: #ffffff; /* 패널 */
+  --surface-2: #eef0e6; /* raised / hover — 옅은 이끼 */
+  --border: #e0ddcd; /* 마른 풀 헤어라인 */
 
-  --text-primary: #eef1f4;
-  --text-secondary: #9aa3ad; /* steel grey */
-  --text-muted: #6b7480; /* muted steel */
-  --grid: #23272e;
-  --axis: #333942;
+  --text-primary: #26302a;
+  --text-secondary: #5d6b60; /* 이끼 그레이 */
+  --text-muted: #8a9389;
+  --grid: #e7e4d6;
+  --axis: #c9c6b5;
 
-  --accent: #5b8fb0; /* cold steel-blue — link/focus/primary */
-  --accent-strong: #7fb4d4; /* hover/active */
-  --signal: #f0a020; /* bat-signal amber — warnings/CTA/limit */
-  --signal-strong: #ffb733;
+  --accent: #3e8e5a; /* 이끼 그린 — link/focus/primary */
+  --accent-strong: #2f7048; /* hover/active (라이트 배경 = 더 진하게) */
+  --signal: #c9662a; /* 단풍 주황 — warnings/CTA/limit */
+  --signal-strong: #a84f1d;
 
-  /* Categorical series slots — cooled/steely, still hue-separable. */
-  --series-1: #5b9fd4; /* steel blue */
-  --series-2: #4bb39b; /* cold teal */
-  --series-3: #f0a020; /* amber */
-  --series-4: #7d8fb3; /* slate periwinkle */
-  --series-5: #9a86d4; /* cold violet */
-  --series-6: #e0685f; /* ember red */
-  --series-7: #c98fb0; /* dusty magenta */
-  --series-8: #d98a4a; /* bronze orange */
+  /* Categorical series slots — 자연톤, 라이트 배경 대비 확보. */
+  --series-1: #3e8e5a; /* 이끼 그린 */
+  --series-2: #2e7d6b; /* 침엽 틸 */
+  --series-3: #c9772b; /* 단풍 오렌지 */
+  --series-4: #8a6d3b; /* 흙 브라운 */
+  --series-5: #4d7fa3; /* 호수 블루 */
+  --series-6: #b04a3e; /* 단풍 레드 */
+  --series-7: #7e8f4e; /* 올리브 */
+  --series-8: #8f6b9c; /* 야생화 퍼플 */
 }
 
 @theme inline {

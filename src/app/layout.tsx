@@ -35,7 +35,7 @@ export default async function RootLayout({
   return (
     <html
       lang="ko"
-      className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
         <NumStyleProvider initial={numStyle}>
