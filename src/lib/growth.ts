@@ -111,6 +111,32 @@ const MILESTONES = {
   ] as Array<[number, string]>,
 };
 
+// --- 표시용 카탈로그 (UI 전용 파생 — 엔진 로직과 단일 소스) ---
+
+const AXIS_LABEL: Record<string, (n: number) => string> = {
+  streak: (n) => `${n}일 연속`,
+  active_days: (n) => `누적 활동 ${n}일`,
+  efficiency: (n) => `효율 보너스 ${n}일`,
+  tools: (n) => `도구 ${n}종`,
+};
+
+export const MILESTONE_CATALOG = Object.entries(MILESTONES).flatMap(([axis, tiers]) =>
+  tiers.map(([threshold, emoji]) => ({
+    key: `${axis}_${threshold}`,
+    axis,
+    emoji,
+    label: AXIS_LABEL[axis](threshold),
+    threshold,
+  })),
+);
+
+export const STAGE_CATALOG = STAGES.map(([stage, emoji, label, minGp]) => ({
+  stage,
+  emoji,
+  label,
+  minGp,
+}));
+
 function collectMilestones(counts: Record<string, number>): {
   unlocked: string[];
   next: { axis: string; label: string; remaining: number } | null;
