@@ -32,7 +32,7 @@ type Rates = {
 // Official USD per 1M tokens (cacheWrite = 5-minute cache write rate).
 // Edit here when models/prices change; the index is relative, so only the
 // ratios between tiers matter.
-const RATES = {
+export const RATES = {
   fable: { input: 10, output: 50, cacheRead: 1, cacheWrite: 12.5 },
   opus: { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
   sonnet: { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },

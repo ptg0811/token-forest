@@ -9,8 +9,10 @@ import {
   UsageHourly,
 } from "@/lib/db";
 import { isoDaysAgo } from "@/lib/date";
-import { estimateWeight, isPremiumModel, rateFamily } from "@/lib/pricing";
+import { RATES, estimateWeight, isPremiumModel, rateFamily } from "@/lib/pricing";
 import type { GrowthDay } from "@/lib/growth";
+import { EMPTY_SUMS, addSums } from "@/lib/scorecard";
+import type { ScoreSums } from "@/lib/scorecard";
 
 // Headline tokens per row = input + output. Cache tokens are excluded — they
 // dwarf real usage by orders of magnitude and would drown the adoption signal;
@@ -1314,4 +1316,145 @@ export async function getGrowthDays(
     input: r.input as number,
     cacheRead: r.cacheRead as number,
   }));
+}
+
+// ---- scorecard (스펙: 2026-07-26-ai-scorecard-design.md) ----
+
+export type ScorecardMemberRow = {
+  memberId: string;
+  tool: string;
+  sums: ScoreSums;
+  models: string[]; // 이 (멤버,도구)에서 쓴 모델들 (확장 축 모델 종 수용)
+};
+
+// 멤버×도구 합산 — 스코어카드의 원재료. Copilot은 토큰 null이라 자연 제외됨.
+export async function getScorecardSums(range: DateRange): Promise<ScorecardMemberRow[]> {
+  await connectDb();
+  const rows = await UsageDaily.aggregate([
+    { $match: { date: { $gte: range.from, $lte: range.to }, memberId: { $ne: null } } },
+    {
+      $group: {
+        _id: { memberId: "$memberId", tool: "$tool" },
+        input: { $sum: { $ifNull: ["$inputTokens", 0] } },
+        output: { $sum: { $ifNull: ["$outputTokens", 0] } },
+        cacheRead: { $sum: { $ifNull: ["$cacheReadTokens", 0] } },
+        cacheCreation: { $sum: { $ifNull: ["$cacheCreationTokens", 0] } },
+        requests: { $sum: { $ifNull: ["$requests", 0] } },
+        sessions: { $sum: { $ifNull: ["$sessions", 0] } },
+        models: { $addToSet: "$model" },
+      },
+    },
+  ]);
+  return rows.map((r) => ({
+    memberId: String(r._id.memberId),
+    tool: r._id.tool,
+    sums: {
+      input: r.input, output: r.output, cacheRead: r.cacheRead,
+      cacheCreation: r.cacheCreation, requests: r.requests, sessions: r.sessions,
+    },
+    models: (r.models as string[]).filter((m) => m !== ""),
+  }));
+}
+
+// 주별 멤버×도구 합산 — 팀 추세(풀드+중앙값)용. week = ISO 월요일(mondayOf 재사용).
+export type ScorecardWeeklyRow = ScorecardMemberRow & { week: string };
+
+export async function getScorecardWeeklySums(range: DateRange): Promise<ScorecardWeeklyRow[]> {
+  await connectDb();
+  const rows = await UsageDaily.aggregate([
+    { $match: { date: { $gte: range.from, $lte: range.to }, memberId: { $ne: null } } },
+    {
+      $group: {
+        _id: { memberId: "$memberId", tool: "$tool", date: "$date" },
+        input: { $sum: { $ifNull: ["$inputTokens", 0] } },
+        output: { $sum: { $ifNull: ["$outputTokens", 0] } },
+        cacheRead: { $sum: { $ifNull: ["$cacheReadTokens", 0] } },
+        cacheCreation: { $sum: { $ifNull: ["$cacheCreationTokens", 0] } },
+        requests: { $sum: { $ifNull: ["$requests", 0] } },
+        sessions: { $sum: { $ifNull: ["$sessions", 0] } },
+      },
+    },
+  ]);
+  const acc = new Map<string, ScorecardWeeklyRow>();
+  for (const r of rows) {
+    const week = mondayOf(r._id.date);
+    const key = `${week}|${r._id.memberId}|${r._id.tool}`;
+    const cur = acc.get(key) ?? {
+      week, memberId: String(r._id.memberId), tool: r._id.tool,
+      sums: { ...EMPTY_SUMS }, models: [],
+    };
+    cur.sums = addSums(cur.sums, r);
+    acc.set(key, cur);
+  }
+  return [...acc.values()];
+}
+
+// A2 캐시 절감 — (tool,model) 합산에 단가 적용해 saved/spent 가중치 산출.
+export async function getCacheSavings(range: DateRange): Promise<{ saved: number; spent: number }> {
+  await connectDb();
+  const rows = await UsageDaily.aggregate([
+    { $match: { date: { $gte: range.from, $lte: range.to } } },
+    {
+      $group: {
+        _id: { tool: "$tool", model: "$model" },
+        input: { $sum: { $ifNull: ["$inputTokens", 0] } },
+        output: { $sum: { $ifNull: ["$outputTokens", 0] } },
+        cacheRead: { $sum: { $ifNull: ["$cacheReadTokens", 0] } },
+        cacheCreation: { $sum: { $ifNull: ["$cacheCreationTokens", 0] } },
+      },
+    },
+  ]);
+  let saved = 0;
+  let spent = 0;
+  for (const r of rows) {
+    const rate = rateFamily(r._id.model, r._id.tool);
+    spent += estimateWeight({
+      model: r._id.model, tool: r._id.tool,
+      inputTokens: r.input, outputTokens: r.output,
+      cacheReadTokens: r.cacheRead, cacheCreationTokens: r.cacheCreation,
+    });
+    saved += (r.cacheRead / 1_000_000) * (RATES[rate].input - RATES[rate].cacheRead);
+  }
+  return { saved, spent };
+}
+
+// D1 — 최근 등장 모델별 멤버 최초 사용일. sinceDays 안에 전역 최초 등장한 모델만.
+export type ModelAdoptionRow = { model: string; globalFirst: string; memberFirstDates: string[] };
+
+export async function getModelAdoption(sinceDays = 120): Promise<ModelAdoptionRow[]> {
+  await connectDb();
+  const since = isoDaysAgo(sinceDays);
+  const rows = await UsageDaily.aggregate([
+    { $match: { model: { $ne: "" }, memberId: { $ne: null } } },
+    { $group: { _id: { model: "$model", memberId: "$memberId" }, first: { $min: "$date" } } },
+    { $group: { _id: "$_id.model", globalFirst: { $min: "$first" }, memberFirsts: { $push: "$first" } } },
+    { $match: { globalFirst: { $gte: since } } },
+    { $sort: { globalFirst: -1 } },
+  ]);
+  return rows.map((r) => ({
+    model: r._id as string,
+    globalFirst: r.globalFirst as string,
+    memberFirstDates: r.memberFirsts as string[],
+  }));
+}
+
+// D3 — 최근 코호트(온보딩 12주 이내) 멤버별 활동일 목록.
+export async function getOnboardingActivity(): Promise<
+  Array<{ memberId: string; name: string; onboardedAt: string; activeDates: string[] }>
+> {
+  await connectDb();
+  const cutoff = new Date(Date.now() - 12 * 7 * 86_400_000);
+  const members = await Member.find(
+    { onboardedAt: { $ne: null, $gte: cutoff } },
+    { name: 1, onboardedAt: 1 },
+  ).lean();
+  const out = [];
+  for (const m of members) {
+    const onboarded = new Date(m.onboardedAt as Date).toISOString().slice(0, 10);
+    const dates = await UsageDaily.distinct("date", {
+      memberId: m._id, date: { $gte: onboarded },
+    });
+    out.push({ memberId: String(m._id), name: m.name, onboardedAt: onboarded, activeDates: dates.sort() });
+  }
+  return out;
 }
