@@ -12,14 +12,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { formatCompact, formatNumber } from "@/app/_lib/ui";
-import { useNumStyle } from "@/app/_components/NumStyleProvider";
-import type {
-  LimitDay,
-  TierWeek,
-  WeeklyEfficiency,
-  WeeklyRate,
-} from "@/lib/queries";
+import { formatNumber } from "@/app/_lib/ui";
+import type { LimitDay, TierWeek, WeeklyRate } from "@/lib/queries";
 
 // Axis/grid constants duplicated from charts.tsx (not exported there — kept
 // local by design so that file stays untouched).
@@ -140,9 +134,7 @@ export function AdoptionRateChart({
   );
 }
 
-// ---- efficiency trend -------------------------------------------------------
-
-type EffKey = "cacheHitRate" | "premiumShare" | "tokensPerSession" | "outputPerInput";
+// ---- small weekly trend (shared by efficiency + scorecard views) -----------
 
 function SmallTrendTooltip({
   active,
@@ -164,9 +156,11 @@ function SmallTrendTooltip({
   );
 }
 
-// One small weekly line. Null weeks (metric undefined, e.g. no CC sessions)
-// break the line on purpose — no connectNulls, a gap is information.
-function SmallTrend({
+// One small weekly line, generic over the row shape so both the team
+// efficiency trend and the scorecard's pooled/median pairs can share it.
+// Null weeks (metric undefined, e.g. no CC sessions) break the line on
+// purpose — no connectNulls, a gap is information.
+export function SmallTrend<T extends { week: string }>({
   data,
   dataKey,
   title,
@@ -174,14 +168,16 @@ function SmallTrend({
   tickFormatter,
   format,
   yWidth,
+  dashed = false,
 }: {
-  data: WeeklyEfficiency[];
-  dataKey: EffKey;
+  data: T[];
+  dataKey: keyof T & string;
   title: string;
   domain?: [number, number];
   tickFormatter: (v: number) => string;
   format: (v: number) => string;
   yWidth: number;
+  dashed?: boolean;
 }) {
   return (
     <div>
@@ -212,56 +208,12 @@ function SmallTrend({
             dataKey={dataKey}
             stroke="var(--series-1)"
             strokeWidth={2}
+            strokeDasharray={dashed ? "4 3" : undefined}
             dot={{ r: 2.5, fill: "var(--series-1)", strokeWidth: 0 }}
             activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--surface-1)" }}
           />
         </LineChart>
       </ResponsiveContainer>
-    </div>
-  );
-}
-
-// 2×2 grid of weekly team-efficiency metrics.
-export function EfficiencyTrend({ data }: { data: WeeklyEfficiency[] }) {
-  const numStyle = useNumStyle();
-  if (!data.length) return null;
-  const compact = (v: number) => formatCompact(v, numStyle);
-  return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <SmallTrend
-        data={data}
-        dataKey="cacheHitRate"
-        title="캐시 적중률"
-        domain={[0, 100]}
-        tickFormatter={pctTick}
-        format={pct}
-        yWidth={40}
-      />
-      <SmallTrend
-        data={data}
-        dataKey="premiumShare"
-        title="프리미엄 모델 비중"
-        domain={[0, 100]}
-        tickFormatter={pctTick}
-        format={pct}
-        yWidth={40}
-      />
-      <SmallTrend
-        data={data}
-        dataKey="tokensPerSession"
-        title="세션당 토큰"
-        tickFormatter={compact}
-        format={compact}
-        yWidth={52}
-      />
-      <SmallTrend
-        data={data}
-        dataKey="outputPerInput"
-        title="출력/입력 비율"
-        tickFormatter={(v) => v.toFixed(2)}
-        format={(v) => v.toFixed(2)}
-        yWidth={40}
-      />
     </div>
   );
 }

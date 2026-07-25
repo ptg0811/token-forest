@@ -1,7 +1,7 @@
 import {
   cacheReuseRatio, contextYield, sessionDepth, requestAnatomy,
   cacheSavingsRate, toolEntropy, median, iqrBand, showBand,
-  adoptionLeadDays, rampWeeks,
+  adoptionLeadDays, rampWeeks, weeklyTeamSeries,
 } from "../lib/scorecard";
 import type { ScoreSums } from "../lib/scorecard";
 
@@ -53,5 +53,38 @@ assert(adoptionLeadDays([], 5) === null, "사용 0 → null");
 // D3 램프업: 온보딩 후 주차별 활동일
 const ramp = rampWeeks(["2026-07-01", "2026-07-02", "2026-07-09"], "2026-07-01", 4);
 assert(JSON.stringify(ramp) === JSON.stringify([2, 1, 0, 0]), `램프 [2,1,0,0] (got ${ramp})`);
+
+// weeklyTeamSeries — 풀드(자원 관점) vs 중앙값(사람 관점): 치우친 2인 데이터에서
+// 한 명이 볼륨을 지배하면 두 값은 갈라져야 한다.
+const cacheHit = (s: ScoreSums) =>
+  s.input + s.cacheRead > 0 ? s.cacheRead / (s.input + s.cacheRead) : null;
+const skewedWeek = weeklyTeamSeries(
+  [
+    { week: "2026-07-06", memberId: "a", sums: S({ input: 900, cacheRead: 100 }) },
+    { week: "2026-07-06", memberId: "b", sums: S({ input: 10, cacheRead: 90 }) },
+  ],
+  cacheHit,
+);
+assert(skewedWeek.length === 1, "치우친 주 1개");
+close(skewedWeek[0].pooled, 190 / 1100, "풀드 = 190/1100");
+close(skewedWeek[0].median, 0.5, "중앙값 = (0.1+0.9)/2");
+assert(
+  skewedWeek[0].pooled !== null &&
+    skewedWeek[0].median !== null &&
+    Math.abs(skewedWeek[0].pooled - skewedWeek[0].median) > 0.01,
+  "풀드 ≠ 중앙값 (치우침 노출)",
+);
+
+// weeklyTeamSeries — 8명 가드: 7명 주엔 밴드 없음, 8명 주엔 있음.
+const membersOf = (n: number) =>
+  Array.from({ length: n }, (_, i) => ({
+    week: "2026-07-13",
+    memberId: `m${i}`,
+    sums: S({ input: 100 - i, cacheRead: i }),
+  }));
+const week7 = weeklyTeamSeries(membersOf(7), cacheHit);
+const week8 = weeklyTeamSeries(membersOf(8), cacheHit);
+assert(week7[0].p25 === undefined && week7[0].p75 === undefined, "7명 → 밴드 없음");
+assert(week8[0].p25 !== undefined && week8[0].p75 !== undefined, "8명 → 밴드 있음");
 
 console.log("ALL PASS");

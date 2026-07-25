@@ -126,3 +126,34 @@ export function rampWeeks(activeDates: string[], onboardedAt: string, weeks = 4)
   }
   return out;
 }
+
+// --- 팀 주별 시리즈 조립 (풀드 + 중앙값 + IQR, 8명 가드) ---
+
+export type WeeklySeriesPoint = {
+  week: string; pooled: number | null; median: number | null;
+  p25?: number; p75?: number;
+};
+
+export function weeklyTeamSeries(
+  rows: Array<{ week: string; memberId: string; sums: ScoreSums; claudeOnly?: boolean }>,
+  metric: (s: ScoreSums) => number | null,
+): WeeklySeriesPoint[] {
+  const byWeek = new Map<string, Map<string, ScoreSums>>();
+  for (const r of rows) {
+    const wk = byWeek.get(r.week) ?? new Map<string, ScoreSums>();
+    wk.set(r.memberId, addSums(wk.get(r.memberId) ?? { ...EMPTY_SUMS }, r.sums));
+    byWeek.set(r.week, wk);
+  }
+  return [...byWeek.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([week, members]) => {
+    const pooledSums = [...members.values()].reduce((a, b) => addSums(a, b), { ...EMPTY_SUMS });
+    const vals = [...members.values()].map(metric).filter((v): v is number => v != null);
+    const point: WeeklySeriesPoint = {
+      week, pooled: metric(pooledSums), median: median(vals),
+    };
+    if (showBand(members.size)) {
+      const band = iqrBand(vals);
+      if (band) { point.p25 = band.p25; point.p75 = band.p75; }
+    }
+    return point;
+  });
+}

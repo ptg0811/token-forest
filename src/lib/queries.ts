@@ -9,7 +9,7 @@ import {
   UsageHourly,
 } from "@/lib/db";
 import { isoDaysAgo } from "@/lib/date";
-import { RATES, estimateWeight, isPremiumModel, rateFamily } from "@/lib/pricing";
+import { RATES, estimateWeight, rateFamily } from "@/lib/pricing";
 import type { GrowthDay } from "@/lib/growth";
 import { EMPTY_SUMS, addSums } from "@/lib/scorecard";
 import type { ScoreSums } from "@/lib/scorecard";
@@ -436,70 +436,6 @@ export async function getMyMachines(email: string): Promise<MachineStatus[]> {
   }));
 }
 
-// ---- personal efficiency (shared accumulator; getTeamEfficiencyTrend still uses it) ------
-
-type EffAcc = {
-  input: number;
-  output: number;
-  cacheRead: number;
-  requests: number;
-  ccTokens: number; // claude_code input+output, for tokens/session
-  ccSessions: number;
-  weight: number;
-  premiumWeight: number;
-};
-
-const emptyEffAcc = (): EffAcc => ({
-  input: 0,
-  output: 0,
-  cacheRead: 0,
-  requests: 0,
-  ccTokens: 0,
-  ccSessions: 0,
-  weight: 0,
-  premiumWeight: 0,
-});
-
-// Summed token fields one (tool, model) group contributes to an EffAcc.
-type EffRow = {
-  inputTokens: number;
-  outputTokens: number;
-  cacheReadTokens: number;
-  cacheCreationTokens: number;
-  requests: number;
-  sessions: number;
-};
-
-// $group sums matching EffRow — shared by the personal and team pipelines so
-// both efficiency views aggregate the exact same fields.
-const EFF_SUM_FIELDS = {
-  inputTokens: { $sum: { $ifNull: ["$inputTokens", 0] } },
-  outputTokens: { $sum: { $ifNull: ["$outputTokens", 0] } },
-  cacheReadTokens: { $sum: { $ifNull: ["$cacheReadTokens", 0] } },
-  cacheCreationTokens: { $sum: { $ifNull: ["$cacheCreationTokens", 0] } },
-  requests: { $sum: REQUESTS_EXPR },
-  sessions: { $sum: { $ifNull: ["$sessions", 0] } },
-};
-
-// Fold one (tool, model) row into an accumulator. Shared with
-// getTeamEfficiencyTrend so the metric definitions can't drift apart.
-function accumulateEff(acc: EffAcc, r: EffRow, tool: string, model: string) {
-  const weight = estimateWeight({ ...r, tool, model });
-  acc.input += r.inputTokens;
-  acc.output += r.outputTokens;
-  acc.cacheRead += r.cacheReadTokens;
-  acc.requests += r.requests;
-  acc.weight += weight;
-  if (isPremiumModel(model)) acc.premiumWeight += weight;
-  if (tool === "claude_code") {
-    acc.ccTokens += r.inputTokens + r.outputTokens;
-    acc.ccSessions += r.sessions;
-  }
-}
-
-// null when the denominator is empty — the UI renders that as "—".
-const effRatio = (num: number, den: number) => (den > 0 ? num / den : null);
-
 // ---- plan-limit snapshots (own collection; per member + Claude account) -----
 
 export type LimitSnapshot = {
@@ -889,49 +825,6 @@ export async function getInactiveMembers(days = 7): Promise<InactiveMember[]> {
       lastDate: lastByMember.get(String(m._id)) ?? null,
     }))
     .filter((m) => m.lastDate === null || m.lastDate < cutoff);
-}
-
-export type WeeklyEfficiency = {
-  week: string;
-  cacheHitRate: number | null; // %
-  premiumShare: number | null; // % (cost-weighted)
-  tokensPerSession: number | null;
-  outputPerInput: number | null;
-};
-
-// Team-wide efficiency metrics per week (shared EffAcc accumulator) summed
-// over all linked members and bucketed by ISO week. The (tool, model)
-// dimensions survive the pipeline only so each slice can be priced and
-// premium-classified in JS.
-export async function getTeamEfficiencyTrend(
-  range: DateRange,
-): Promise<WeeklyEfficiency[]> {
-  await connectDb();
-  const rows = await UsageDaily.aggregate([
-    { $match: { memberId: { $ne: null }, ...inRange(range) } },
-    {
-      $group: {
-        _id: { date: "$date", tool: "$tool", model: "$model" },
-        ...EFF_SUM_FIELDS,
-      },
-    },
-  ]);
-  const byWeek = new Map<string, EffAcc>();
-  for (const r of rows) {
-    const week = mondayOf(r._id.date);
-    let acc = byWeek.get(week);
-    if (!acc) byWeek.set(week, (acc = emptyEffAcc()));
-    accumulateEff(acc, r, r._id.tool, r._id.model);
-  }
-  return [...byWeek.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([week, a]) => ({
-      week,
-      cacheHitRate: effRatio(a.cacheRead * 100, a.input + a.cacheRead),
-      premiumShare: effRatio(a.premiumWeight * 100, a.weight),
-      tokensPerSession: effRatio(a.ccTokens, a.ccSessions),
-      outputPerInput: effRatio(a.output, a.input),
-    }));
 }
 
 export type TierWeek = { week: string } & Record<string, number | string>;

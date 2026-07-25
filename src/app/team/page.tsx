@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import {
   getAdoptionMatrix,
   getAllMembers,
+  getCacheSavings,
   getDailyRequests,
   getHourlyHeatmap,
   getInactiveMembers,
@@ -10,10 +11,12 @@ import {
   getLimitHitCounts,
   getMemberLeaderboard,
   getMemberWowDeltas,
+  getModelAdoption,
   getModelDistribution,
   getModelTierTrend,
+  getOnboardingActivity,
+  getScorecardWeeklySums,
   getTeamAdoptionRate,
-  getTeamEfficiencyTrend,
   getToolSummary,
   getWeeklyActiveByTool,
 } from "@/lib/queries";
@@ -28,7 +31,6 @@ import {
 import { AdoptionChart, TrendArea } from "@/app/_components/charts";
 import {
   AdoptionRateChart,
-  EfficiencyTrend,
   LimitHistoryChart,
   TierMixChart,
 } from "@/app/_components/analytics/TeamCharts";
@@ -43,6 +45,16 @@ import { Heatmap } from "@/app/_components/analytics/Heatmap";
 import { ModelDonut } from "@/app/_components/analytics/ModelDonut";
 import { WowTable } from "@/app/_components/analytics/WowTable";
 import { getNumStyle } from "@/app/_lib/numfmt";
+import TeamScorecard from "@/app/_components/analytics/TeamScorecard";
+import {
+  adoptionLeadDays,
+  cacheReuseRatio,
+  cacheSavingsRate,
+  contextYield as contextYieldMetric,
+  rampWeeks,
+  sessionDepth as sessionDepthMetric,
+  weeklyTeamSeries,
+} from "@/lib/scorecard";
 
 const MS_PER_DAY = 86_400_000;
 
@@ -105,7 +117,10 @@ export default async function TeamPage({
     matrix,
     inactive,
     weeklyActive,
-    efficiency,
+    scoreWeekly,
+    savings,
+    adoption,
+    onboarding,
     tierMix,
     heatmap,
     modelDist,
@@ -122,7 +137,10 @@ export default async function TeamPage({
     getAdoptionMatrix(),
     getInactiveMembers(7),
     getWeeklyActiveByTool(range),
-    getTeamEfficiencyTrend(range),
+    getScorecardWeeklySums(range),
+    getCacheSavings(range),
+    getModelAdoption(120),
+    getOnboardingActivity(),
     getModelTierTrend(range),
     getHourlyHeatmap(range),
     getModelDistribution(range),
@@ -135,6 +153,29 @@ export default async function TeamPage({
     getAllMembers(),
     getNumStyle(),
   ]);
+
+  // ---- 팀 스코어카드 조립 (순수 계산은 scorecard.ts, 여긴 원재료 배선만) ----
+  const claudeOnlyWeekly = scoreWeekly.filter((r) => r.tool === "claude_code");
+  const cacheHitSeries = weeklyTeamSeries(scoreWeekly, (s) =>
+    s.input + s.cacheRead > 0 ? s.cacheRead / (s.input + s.cacheRead) : null,
+  );
+  const cacheReuseSeries = weeklyTeamSeries(scoreWeekly, cacheReuseRatio);
+  const contextYieldSeries = weeklyTeamSeries(scoreWeekly, contextYieldMetric);
+  const sessionDepthSeries = weeklyTeamSeries(claudeOnlyWeekly, sessionDepthMetric);
+  const cacheSavingsPct = cacheSavingsRate(savings.saved, savings.spent);
+  const teamSize = allMembers.length;
+  const modelAdoption = adoption.map((a) => ({
+    model: a.model,
+    globalFirst: a.globalFirst,
+    leadDays: adoptionLeadDays(a.memberFirstDates, teamSize),
+  }));
+  const rampAvg =
+    onboarding.length === 0
+      ? null
+      : onboarding
+          .map((m) => rampWeeks(m.activeDates, m.onboardedAt, 4))
+          .reduce((acc, weeks) => acc.map((v, i) => v + weeks[i]), [0, 0, 0, 0])
+          .map((sum) => sum / onboarding.length);
 
   const heatmapHasData = heatmap.some((row) => row.some((v) => v > 0));
 
@@ -282,13 +323,22 @@ export default async function TeamPage({
       <SectionHeading lead="팀의 사용 습관이 어떤 모습이고, 어떻게 변하고 있는가">사용 패턴</SectionHeading>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card title="팀 효율 추세" hint="주별 · 팀 합산" className="lg:col-span-2">
-          {efficiency.length ? (
-            <EfficiencyTrend data={efficiency} />
+        <Card title="AI 활용 스코어카드" hint="주별 · 풀드/중앙값 병기 · 순위 없음" className="lg:col-span-2">
+          {scoreWeekly.length ? (
+            <TeamScorecard
+              cacheHit={cacheHitSeries}
+              cacheReuse={cacheReuseSeries}
+              contextYield={contextYieldSeries}
+              sessionDepth={sessionDepthSeries}
+              cacheSavingsPct={cacheSavingsPct}
+              modelAdoption={modelAdoption}
+              rampAvg={rampAvg}
+              cohortSize={onboarding.length}
+            />
           ) : (
             <EmptyState message="이 기간에 팀 사용 기록이 없습니다." />
           )}
-          <Insight>개인 비교가 아닌 팀 합산 습관입니다. 캐시 적중률은 높을수록 같은 컨텍스트를 저렴하게 재사용한다는 뜻이고, 프리미엄 비중·세션당 토큰의 급변은 사용 방식이 바뀌었다는 신호입니다.</Insight>
+          <Insight>4축(습관·효율·숙련·확장) 원값 스코어카드입니다 — 점수화·순위 없음. 풀드는 팀 자원 전체 관점, 중앙값은 전형적인 팀원 관점입니다.</Insight>
         </Card>
 
         <Card title="모델 티어 믹스" hint="주별 토큰 비중 %" className="lg:col-span-2">
