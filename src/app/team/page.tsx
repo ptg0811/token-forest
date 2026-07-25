@@ -15,11 +15,13 @@ import {
   getModelDistribution,
   getModelTierTrend,
   getOnboardingActivity,
+  getPremiumShareWeekly,
   getScorecardWeeklySums,
   getTeamAdoptionRate,
   getToolSummary,
   getWeeklyActiveByTool,
 } from "@/lib/queries";
+import type { PremiumShareWeeklyRow } from "@/lib/queries";
 import {
   formatCompact,
   formatNumber,
@@ -51,10 +53,14 @@ import {
   cacheReuseRatio,
   cacheSavingsRate,
   contextYield as contextYieldMetric,
+  iqrBand,
+  median,
   rampWeeks,
   sessionDepth as sessionDepthMetric,
+  showBand,
   weeklyTeamSeries,
 } from "@/lib/scorecard";
+import type { WeeklySeriesPoint } from "@/lib/scorecard";
 
 const MS_PER_DAY = 86_400_000;
 
@@ -104,6 +110,47 @@ function Insight({ children }: { children: React.ReactNode }) {
   );
 }
 
+// 프리미엄 비중 팀 시리즈 — getPremiumShareWeekly 행(멤버×주×모델 이미 접힘)을
+// weeklyTeamSeries와 같은 모양(풀드+중앙값+IQR)으로 조립한다. weeklyTeamSeries는
+// ScoreSums 위에서 동작하는데 이 지표는 premium/total 토큰 두 값뿐이라 재사용하지
+// 않고 여기서 직접 리듀스한다 (스펙: 풀드=자원 관점, 중앙값=사람 관점, 8명 미만 IQR 숨김).
+function premiumShareSeries(rows: PremiumShareWeeklyRow[]): WeeklySeriesPoint[] {
+  const byWeek = new Map<string, Map<string, { premium: number; total: number }>>();
+  for (const r of rows) {
+    const wk = byWeek.get(r.week) ?? new Map<string, { premium: number; total: number }>();
+    const cur = wk.get(r.memberId) ?? { premium: 0, total: 0 };
+    cur.premium += r.premiumTokens;
+    cur.total += r.totalTokens;
+    wk.set(r.memberId, cur);
+    byWeek.set(r.week, wk);
+  }
+  return [...byWeek.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([week, members]) => {
+      let pooledPremium = 0;
+      let pooledTotal = 0;
+      const shares: number[] = [];
+      for (const m of members.values()) {
+        pooledPremium += m.premium;
+        pooledTotal += m.total;
+        if (m.total > 0) shares.push(m.premium / m.total);
+      }
+      const point: WeeklySeriesPoint = {
+        week,
+        pooled: pooledTotal > 0 ? pooledPremium / pooledTotal : null,
+        median: median(shares),
+      };
+      if (showBand(members.size)) {
+        const band = iqrBand(shares);
+        if (band) {
+          point.p25 = band.p25;
+          point.p75 = band.p75;
+        }
+      }
+      return point;
+    });
+}
+
 export default async function TeamPage({
   searchParams,
 }: {
@@ -118,6 +165,7 @@ export default async function TeamPage({
     inactive,
     weeklyActive,
     scoreWeekly,
+    premiumShareWeekly,
     savings,
     adoption,
     onboarding,
@@ -138,6 +186,7 @@ export default async function TeamPage({
     getInactiveMembers(7),
     getWeeklyActiveByTool(range),
     getScorecardWeeklySums(range),
+    getPremiumShareWeekly(range),
     getCacheSavings(range),
     getModelAdoption(120),
     getOnboardingActivity(),
@@ -162,6 +211,7 @@ export default async function TeamPage({
   const cacheReuseSeries = weeklyTeamSeries(scoreWeekly, cacheReuseRatio);
   const contextYieldSeries = weeklyTeamSeries(scoreWeekly, contextYieldMetric);
   const sessionDepthSeries = weeklyTeamSeries(claudeOnlyWeekly, sessionDepthMetric);
+  const premiumShareSeriesData = premiumShareSeries(premiumShareWeekly);
   const cacheSavingsPct = cacheSavingsRate(savings.saved, savings.spent);
   const teamSize = allMembers.length;
   const modelAdoption = adoption.map((a) => ({
@@ -331,6 +381,7 @@ export default async function TeamPage({
               contextYield={contextYieldSeries}
               sessionDepth={sessionDepthSeries}
               cacheSavingsPct={cacheSavingsPct}
+              premiumShare={premiumShareSeriesData}
               modelAdoption={modelAdoption}
               rampAvg={rampAvg}
               cohortSize={onboarding.length}

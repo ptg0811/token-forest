@@ -4,6 +4,7 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
+  ComposedChart,
   Line,
   LineChart,
   ReferenceLine,
@@ -160,7 +161,13 @@ function SmallTrendTooltip({
 // efficiency trend and the scorecard's pooled/median pairs can share it.
 // Null weeks (metric undefined, e.g. no CC sessions) break the line on
 // purpose — no connectNulls, a gap is information.
-export function SmallTrend<T extends { week: string }>({
+//
+// IQR band: when a point carries p25/p75 (weeklyTeamSeries only emits these
+// once a week reaches the 8-active-member guard — src/lib/scorecard.ts
+// showBand) and showBand is requested, a low-opacity Area is drawn behind
+// the line spanning [p25, p75] — the member-distribution spread behind the
+// median. Below 8 active members the fields are absent and no band renders.
+export function SmallTrend<T extends { week: string; p25?: number; p75?: number }>({
   data,
   dataKey,
   title,
@@ -169,6 +176,7 @@ export function SmallTrend<T extends { week: string }>({
   format,
   yWidth,
   dashed = false,
+  showBand = false,
 }: {
   data: T[];
   dataKey: keyof T & string;
@@ -178,14 +186,22 @@ export function SmallTrend<T extends { week: string }>({
   format: (v: number) => string;
   yWidth: number;
   dashed?: boolean;
+  showBand?: boolean;
 }) {
+  const hasBand = showBand && data.some((d) => d.p25 != null && d.p75 != null);
+  const chartData = hasBand
+    ? data.map((d) => ({
+        ...d,
+        range: d.p25 != null && d.p75 != null ? [d.p25, d.p75] : undefined,
+      }))
+    : data;
   return (
     <div>
       <div className="mb-1 text-xs font-medium text-[var(--text-secondary)]">
         {title}
       </div>
       <ResponsiveContainer width="100%" height={160}>
-        <LineChart data={data} margin={CHART_MARGIN}>
+        <ComposedChart data={chartData} margin={CHART_MARGIN}>
           <CartesianGrid stroke={GRID} vertical={false} />
           <XAxis
             dataKey="week"
@@ -203,6 +219,17 @@ export function SmallTrend<T extends { week: string }>({
             cursor={{ stroke: "var(--axis)" }}
             content={<SmallTrendTooltip format={format} />}
           />
+          {hasBand && (
+            <Area
+              type="monotone"
+              dataKey="range"
+              stroke="none"
+              fill="var(--series-1)"
+              fillOpacity={0.15}
+              isAnimationActive={false}
+              connectNulls={false}
+            />
+          )}
           <Line
             type="monotone"
             dataKey={dataKey}
@@ -212,7 +239,7 @@ export function SmallTrend<T extends { week: string }>({
             dot={{ r: 2.5, fill: "var(--series-1)", strokeWidth: 0 }}
             activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--surface-1)" }}
           />
-        </LineChart>
+        </ComposedChart>
       </ResponsiveContainer>
     </div>
   );

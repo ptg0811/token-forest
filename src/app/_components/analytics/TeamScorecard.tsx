@@ -21,14 +21,11 @@ export type TeamScorecardProps = {
   contextYield: WeeklySeriesPoint[]; // 0..1
   sessionDepth: WeeklySeriesPoint[]; // 턴/세션, claude_code 한정
   cacheSavingsPct: number | null; // 0..1 (A2)
+  premiumShare: WeeklySeriesPoint[]; // 0..1, 프리미엄(Opus/Fable급) 토큰 비중
   modelAdoption: ModelAdoptionDisplay[];
   rampAvg: number[] | null; // 코호트 평균 [1주차..N주차], 코호트 0명이면 null
   cohortSize: number;
 };
-
-function shortDate(v: string): string {
-  return v.length === 10 ? v.slice(5) : v;
-}
 
 function pct(v: number): string {
   return `${(v * 100).toFixed(1).replace(/\.0$/, "")}%`;
@@ -75,12 +72,13 @@ function TrendPair({
         <SmallTrend
           data={data}
           dataKey="median"
-          title="중앙값 (사람 관점)"
+          title="중앙값 (사람 관점, 음영=IQR)"
           domain={domain}
           tickFormatter={tickFormatter}
           format={format}
           yWidth={yWidth}
           dashed
+          showBand
         />
       </div>
     </div>
@@ -93,6 +91,7 @@ export default function TeamScorecard({
   contextYield,
   sessionDepth,
   cacheSavingsPct,
+  premiumShare,
   modelAdoption,
   rampAvg,
   cohortSize,
@@ -114,7 +113,7 @@ export default function TeamScorecard({
         <p className="text-[11px] text-[var(--text-muted)]">
           가중 자원 기준 — 달러 아님. 모델별 공개 단가로 상대 비중만 계산합니다.
         </p>
-        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <TrendPair
             title="캐시 적중률"
             data={cacheHit}
@@ -138,9 +137,18 @@ export default function TeamScorecard({
             format={pct}
             yWidth={40}
           />
+          <TrendPair
+            title="프리미엄 모델 비중"
+            data={premiumShare}
+            domain={[0, 1]}
+            tickFormatter={pctTick}
+            format={pct}
+            yWidth={40}
+          />
         </div>
         <p className="mt-2 text-[11px] text-[var(--text-muted)]">
           재사용 배율과 수율은 함께 보세요 — 세션을 길게 끌면 배율은 오르지만 수율이 떨어집니다(견제 쌍).
+          프리미엄 모델 비중은 무방향 지표입니다 — 높다고 나쁜 게 아니라 작업 난이도의 반영일 수 있습니다.
         </p>
       </section>
 
@@ -216,7 +224,7 @@ export default function TeamScorecard({
       <section>
         <h3 className="text-xs font-semibold text-[var(--text-muted)]">확장</h3>
         <p className="mt-1 text-xs text-[var(--text-muted)]">
-          도구·모델 다양성 추세는 위 "도입 확산" 섹션을 참조하세요 (도입 매트릭스 · 주간 활성 사용자).
+          도구·모델 다양성 추세는 위 &ldquo;도입 확산&rdquo; 섹션을 참조하세요 (도입 매트릭스 · 주간 활성 사용자).
         </p>
       </section>
 
@@ -233,7 +241,7 @@ export default function TeamScorecard({
             <li>습관화 — 도입률 · 주간 활성 · 온보딩 램프업(온보딩 후 주차별 활동일수).</li>
             <li>
               효율 — 캐시 재사용 배율(cacheRead/cacheCreation) · 컨텍스트 수율(output/(input+cacheRead)) ·
-              캐시 절감률(절감 가중치/(실소비+절감 가중치), % 표시).
+              캐시 절감률(절감 가중치/(실소비+절감 가중치), % 표시) · 프리미엄 모델 비중(프리미엄 토큰/전체 토큰).
             </li>
             <li>
               숙련 — 세션 깊이(requests/sessions, Claude Code 한정) · 신모델 채택 리드타임(전역 최초
@@ -243,10 +251,11 @@ export default function TeamScorecard({
           </ul>
           <p className="font-medium text-[var(--text-primary)]">한계</p>
           <ul className="list-disc space-y-1 pl-4">
-            <li>"창의성" 자체는 측정할 수 없습니다 — 도구·모델 다양성과 신기능 채택 속도라는 범위의 넓이만 프록시로 봅니다.</li>
+            <li>&ldquo;창의성&rdquo; 자체는 측정할 수 없습니다 — 도구·모델 다양성과 신기능 채택 속도라는 범위의 넓이만 프록시로 봅니다.</li>
             <li>Copilot 등 토큰을 보고하지 않는 도구는 토큰 기반 지표에서 자동 제외됩니다(requests만 집계).</li>
             <li>세션 수는 Claude Code 업로더만 기록합니다 — 세션 깊이는 Claude Code 한정 지표입니다.</li>
             <li>캐시 적중률은 불필요한 재호출로도 부풀릴 수 있어 완전히 방어되지 않는 알려진 한계입니다.</li>
+            <li>중앙값 차트의 음영(IQR)은 개인 특정 방지를 위해 활성 인원이 8명 이상인 주에만 표시됩니다.</li>
           </ul>
         </div>
       </details>

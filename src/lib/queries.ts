@@ -9,7 +9,7 @@ import {
   UsageHourly,
 } from "@/lib/db";
 import { isoDaysAgo } from "@/lib/date";
-import { RATES, estimateWeight, rateFamily } from "@/lib/pricing";
+import { RATES, estimateWeight, isPremiumModel, rateFamily } from "@/lib/pricing";
 import type { GrowthDay } from "@/lib/growth";
 import { EMPTY_SUMS, addSums } from "@/lib/scorecard";
 import type { ScoreSums } from "@/lib/scorecard";
@@ -1227,6 +1227,41 @@ export async function getScorecardWeeklySums(range: DateRange): Promise<Scorecar
   return [...acc.values()];
 }
 
+// 프리미엄 비중 (팀 효율 축, 기존 지표 이관) — 주별·멤버별 프리미엄(Opus/Fable급)
+// 토큰 대 전체 토큰. 모델 구분이 필요해 getScorecardWeeklySums(도구 단위 합산)로는
+// 계산할 수 없다 — 별도로 모델 단위까지 그룹핑한다. tokens = input+output
+// (TOKENS_EXPR과 동일 정의, 캐시 토큰 제외).
+export type PremiumShareWeeklyRow = {
+  week: string;
+  memberId: string;
+  premiumTokens: number;
+  totalTokens: number;
+};
+
+export async function getPremiumShareWeekly(range: DateRange): Promise<PremiumShareWeeklyRow[]> {
+  await connectDb();
+  const rows = await UsageDaily.aggregate([
+    { $match: { date: { $gte: range.from, $lte: range.to }, memberId: { $ne: null } } },
+    {
+      $group: {
+        _id: { memberId: "$memberId", date: "$date", model: "$model" },
+        tokens: { $sum: TOKENS_EXPR },
+      },
+    },
+  ]);
+  const acc = new Map<string, PremiumShareWeeklyRow>();
+  for (const r of rows) {
+    const week = mondayOf(r._id.date);
+    const memberId = String(r._id.memberId);
+    const key = `${week}|${memberId}`;
+    const cur = acc.get(key) ?? { week, memberId, premiumTokens: 0, totalTokens: 0 };
+    cur.totalTokens += r.tokens;
+    if (isPremiumModel(String(r._id.model ?? ""))) cur.premiumTokens += r.tokens;
+    acc.set(key, cur);
+  }
+  return [...acc.values()];
+}
+
 // A2 캐시 절감 — (tool,model) 합산에 단가 적용해 saved/spent 가중치 산출.
 export async function getCacheSavings(range: DateRange): Promise<{ saved: number; spent: number }> {
   await connectDb();
@@ -1259,6 +1294,11 @@ export async function getCacheSavings(range: DateRange): Promise<{ saved: number
 // D1 — 최근 등장 모델별 멤버 최초 사용일. sinceDays 안에 전역 최초 등장한 모델만.
 export type ModelAdoptionRow = { model: string; globalFirst: string; memberFirstDates: string[] };
 
+// Cursor's mode/tier placeholders — not real model names — so they shouldn't
+// count as "신모델 채택" (model adoption). Exact match (case-insensitive),
+// not substring: real model families like "composer-1" must stay countable.
+const NON_MODEL_NAMES = new Set(["default", "premium", "auto", "unknown", "composer"]);
+
 export async function getModelAdoption(sinceDays = 120): Promise<ModelAdoptionRow[]> {
   await connectDb();
   const since = isoDaysAgo(sinceDays);
@@ -1269,11 +1309,13 @@ export async function getModelAdoption(sinceDays = 120): Promise<ModelAdoptionRo
     { $match: { globalFirst: { $gte: since } } },
     { $sort: { globalFirst: -1 } },
   ]);
-  return rows.map((r) => ({
-    model: r._id as string,
-    globalFirst: r.globalFirst as string,
-    memberFirstDates: r.memberFirsts as string[],
-  }));
+  return rows
+    .filter((r) => !NON_MODEL_NAMES.has(String(r._id).toLowerCase().trim()))
+    .map((r) => ({
+      model: r._id as string,
+      globalFirst: r.globalFirst as string,
+      memberFirstDates: r.memberFirsts as string[],
+    }));
 }
 
 // D3 — 최근 코호트(온보딩 12주 이내) 멤버별 활동일 목록.
