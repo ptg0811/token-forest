@@ -47,4 +47,33 @@ assert(r.overall < 5, "5단계 미만이면 다음 조건 있음");
 const top = overallMaturity({ habit: 100, efficiency: 90, skill: 15, breadth: 5 });
 assert(top.overall === 5, "전원 최상 → 5");
 
+// I2 — 신모델 리드타임이 숙련 축을 게이트한다.
+// 깊이는 높지만(15 → 5단계) 신모델 채택 관측이 없으면(null) 3단계로 제한.
+const noNewModel = overallMaturity({
+  habit: 100, efficiency: 90, skill: 15, breadth: 5, newModelLeadDays: null,
+});
+assert(noNewModel.axes.skill === 3, `깊이 높음+신모델 관측 없음 → 숙련 3단계 제한 (got ${noNewModel.axes.skill})`);
+assert(noNewModel.overall === 3, `종합도 숙련에 눌려 3 (got ${noNewModel.overall})`);
+assert(noNewModel.bottleneck === "skill", `병목=숙련 (got ${noNewModel.bottleneck})`);
+
+// 깊이 높음 + 리드타임 5일(<7일) → 5단계까지 허용
+const fastNewModel = overallMaturity({
+  habit: 100, efficiency: 90, skill: 15, breadth: 5, newModelLeadDays: 5,
+});
+assert(fastNewModel.axes.skill === 5, `깊이 높음+리드 5일 → 숙련 5단계 (got ${fastNewModel.axes.skill})`);
+assert(fastNewModel.overall === 5, `종합 5 (got ${fastNewModel.overall})`);
+
+// 깊이 높음 + 리드타임 10일(<14, >=7) → 4단계까지만
+const midNewModel = overallMaturity({
+  habit: 100, efficiency: 90, skill: 15, breadth: 5, newModelLeadDays: 10,
+});
+assert(midNewModel.axes.skill === 4, `깊이 높음+리드 10일 → 숙련 4단계 제한 (got ${midNewModel.axes.skill})`);
+assert(midNewModel.nextCondition.includes("리드타임"), "리드타임 게이트 병목이면 안내 문구에 리드타임 언급");
+
+// newModelLeadDays 생략(필드 자체 없음, 하위 호환) — 게이트 미적용, 기존 동작 그대로.
+// 명시적 null(신호는 배선됐지만 관측된 신모델 채택이 없음)만 3단계로 캡한다.
+assert(axisStage("skill", 15) === 5, "axisStage 단독 호출은 리드타임 게이트 없이 그대로 (got backward-compat)");
+const omitted = overallMaturity({ habit: 100, efficiency: 90, skill: 15, breadth: 5 });
+assert(omitted.axes.skill === 5, "newModelLeadDays 생략(하위 호환) → 게이트 미적용, 깊이 그대로 5단계");
+
 console.log("ALL PASS");

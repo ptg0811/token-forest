@@ -237,14 +237,24 @@ export default async function TeamPage({
   const latestAdoption = adoptionRate.length ? adoptionRate[adoptionRate.length - 1].activePct : null;
   const cacheHitMedianPct =
     latestMedian(cacheHitSeries) != null ? latestMedian(cacheHitSeries)! * 100 : null;
-  // getAdoptionMatrix always returns `tools: string[]` (queries.ts) — no fallback needed.
-  const toolCount = matrix.tools.length;
+  // matrix.tools is a static catalog (queries.ts — always [cursor, claude_code,
+  // openai, copilot], length 4) so it can't measure actual breadth. Count tools
+  // with real activity in range instead.
+  const toolCount = toolSummary.filter((t) => t.tokens > 0 || t.requests > 0).length;
+
+  // 신모델 채택 리드타임 — 최근 도구 도입에서 관측된 것 중 최단(가장 빠른 흡수).
+  // 미도달(null) 값은 아직 절반 채택을 못 봤다는 뜻이라 "가장 빠름" 후보에서 제외.
+  const observedLeadDays = modelAdoption
+    .map((m) => m.leadDays)
+    .filter((d): d is number => d != null);
+  const newModelLeadDays = observedLeadDays.length ? Math.min(...observedLeadDays) : null;
 
   const maturity = overallMaturity({
     habit: latestAdoption,
     efficiency: cacheHitMedianPct,
     skill: latestMedian(sessionDepthSeries),
     breadth: toolCount,
+    newModelLeadDays,
   });
 
   const heatmapHasData = heatmap.some((row) => row.some((v) => v > 0));

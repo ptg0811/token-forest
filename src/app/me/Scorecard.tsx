@@ -90,7 +90,7 @@ export default async function Scorecard({ memberId }: { memberId: string }) {
       <div className="space-y-3 text-sm">
         <section>
           <h3 className="text-xs font-semibold text-[var(--text-muted)]">습관화</h3>
-          <p>주간 활동일 {weeklyActive}/7 · 스트릭 🔥{g.streakDays} (최고 {g.bestStreak})</p>
+          <p>주간 활동일 {weeklyActive}/7 · 스트릭<InfoTip info={METRIC_INFO.streak} /> 🔥{g.streakDays} (최고 {g.bestStreak})</p>
         </section>
         <section>
           <h3 className="text-xs font-semibold text-[var(--text-muted)]">효율</h3>
@@ -102,7 +102,7 @@ export default async function Scorecard({ memberId }: { memberId: string }) {
           <h3 className="text-xs font-semibold text-[var(--text-muted)]">숙련</h3>
           <p>세션 깊이<InfoTip info={METRIC_INFO.sessionDepth} /> {num(sessionDepth(mine.claude))} 턴/세션 <span className="text-[var(--text-muted)]">(Claude Code · 방향 없음 — 작업 스타일)</span></p>
           {myAnatomy && (
-            <p>요청 1건 구성 — 입력 {Math.round(myAnatomy.inputPerReq).toLocaleString()} · 캐시 {Math.round(myAnatomy.cachePerReq).toLocaleString()} · 생성 {Math.round(myAnatomy.outputPerReq).toLocaleString()} 토큰</p>
+            <p>요청 1건 구성<InfoTip info={METRIC_INFO.requestAnatomy} /> — 입력 {Math.round(myAnatomy.inputPerReq).toLocaleString()} · 캐시 {Math.round(myAnatomy.cachePerReq).toLocaleString()} · 생성 {Math.round(myAnatomy.outputPerReq).toLocaleString()} 토큰</p>
           )}
         </section>
         <section>
