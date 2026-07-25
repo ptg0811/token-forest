@@ -43,6 +43,7 @@ import { Heatmap } from "@/app/_components/analytics/Heatmap";
 import { ModelDonut } from "@/app/_components/analytics/ModelDonut";
 import { WowTable } from "@/app/_components/analytics/WowTable";
 import { getNumStyle } from "@/app/_lib/numfmt";
+import ForestGrid from "@/app/_components/ForestGrid";
 
 const MS_PER_DAY = 86_400_000;
 
@@ -168,6 +169,8 @@ export default async function TeamPage({
       <p className="-mt-4 mb-6 text-xs text-[var(--text-muted)]">
         {range.from} ~ {range.to}
       </p>
+
+      <ForestGrid />
 
       <SectionHeading lead="팀이 AI 도구를 얼마나 넓게, 꾸준히 쓰게 되고 있는가">도입 확산</SectionHeading>
 
