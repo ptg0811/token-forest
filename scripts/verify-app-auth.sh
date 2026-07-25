@@ -17,7 +17,8 @@ check "unauth / → login redirect" 302 "$code"
 code=$(curl -s --max-time 10 -o /dev/null -w '%{http_code}' -H "X-Forwarded-Email: admin@evil.com" "$BASE/me")
 check "spoofed identity header" 302 "$code"
 
-code=$(curl -s --max-time 10 -o /dev/null -w '%{http_code}' "$BASE/oauth2/ping")
+# oauth2-proxy 헬스는 루트 /ping (기본 --ping-path) — 프록시가 직접 응답, 업스트림 미전달.
+code=$(curl -s --max-time 10 -o /dev/null -w '%{http_code}' "$BASE/ping")
 check "oauth2-proxy health" 200 "$code"
 
 echo "---"
