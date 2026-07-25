@@ -436,17 +436,7 @@ export async function getMyMachines(email: string): Promise<MachineStatus[]> {
   }));
 }
 
-// ---- personal efficiency (/me only — never rendered for other members) ------
-
-export type EfficiencyMetric = { mine: number | null; team: number | null };
-
-export type MyEfficiency = {
-  cacheHitRate: EfficiencyMetric; // % — cacheRead / (input + cacheRead)
-  outputPerInput: EfficiencyMetric; // ratio, cache excluded
-  tokensPerSession: EfficiencyMetric; // claude_code rows only
-  tokensPerRequest: EfficiencyMetric; // (input+output) ÷ requests — call weight
-  premiumShare: EfficiencyMetric; // % of cost weight on Opus/Fable-tier models
-};
+// ---- personal efficiency (shared accumulator; getTeamEfficiencyTrend still uses it) ------
 
 type EffAcc = {
   input: number;
@@ -491,8 +481,8 @@ const EFF_SUM_FIELDS = {
   sessions: { $sum: { $ifNull: ["$sessions", 0] } },
 };
 
-// Fold one (tool, model) row into an accumulator. Shared by getMyEfficiency
-// and getTeamEfficiencyTrend so the metric definitions can't drift apart.
+// Fold one (tool, model) row into an accumulator. Shared with
+// getTeamEfficiencyTrend so the metric definitions can't drift apart.
 function accumulateEff(acc: EffAcc, r: EffRow, tool: string, model: string) {
   const weight = estimateWeight({ ...r, tool, model });
   acc.input += r.inputTokens;
@@ -509,51 +499,6 @@ function accumulateEff(acc: EffAcc, r: EffRow, tool: string, model: string) {
 
 // null when the denominator is empty — the UI renders that as "—".
 const effRatio = (num: number, den: number) => (den > 0 ? num / den : null);
-
-// One member's usage-efficiency metrics vs the whole team's (linked members,
-// viewer included) over the range. Ratios come from summed tokens, not
-// averaged daily ratios, so heavy days weigh in proportionally. `null` means
-// the denominator is empty (e.g. no sessions recorded) — render as "—".
-export async function getMyEfficiency(
-  memberId: string,
-  range: DateRange,
-): Promise<MyEfficiency> {
-  await connectDb();
-  const rows = await UsageDaily.aggregate([
-    { $match: { memberId: { $ne: null }, ...inRange(range) } },
-    {
-      $group: {
-        _id: {
-          mine: { $eq: ["$memberId", oid(memberId)] },
-          tool: "$tool",
-          model: "$model",
-        },
-        ...EFF_SUM_FIELDS,
-      },
-    },
-  ]);
-  const mine = emptyEffAcc();
-  const team = emptyEffAcc();
-  for (const r of rows) {
-    const { tool, model } = r._id;
-    for (const acc of r._id.mine ? [mine, team] : [team]) {
-      accumulateEff(acc, r, tool, model);
-    }
-  }
-  const metric = (f: (a: EffAcc) => number | null): EfficiencyMetric => ({
-    mine: f(mine),
-    team: f(team),
-  });
-  return {
-    cacheHitRate: metric((a) =>
-      effRatio(a.cacheRead * 100, a.input + a.cacheRead),
-    ),
-    outputPerInput: metric((a) => effRatio(a.output, a.input)),
-    tokensPerSession: metric((a) => effRatio(a.ccTokens, a.ccSessions)),
-    tokensPerRequest: metric((a) => effRatio(a.input + a.output, a.requests)),
-    premiumShare: metric((a) => effRatio(a.premiumWeight * 100, a.weight)),
-  };
-}
 
 // ---- plan-limit snapshots (own collection; per member + Claude account) -----
 
@@ -954,10 +899,10 @@ export type WeeklyEfficiency = {
   outputPerInput: number | null;
 };
 
-// Team-wide efficiency metrics per week — same definitions as getMyEfficiency
-// (shared EffAcc accumulator) but summed over all linked members and bucketed
-// by ISO week. The (tool, model) dimensions survive the pipeline only so each
-// slice can be priced and premium-classified in JS.
+// Team-wide efficiency metrics per week (shared EffAcc accumulator) summed
+// over all linked members and bucketed by ISO week. The (tool, model)
+// dimensions survive the pipeline only so each slice can be priced and
+// premium-classified in JS.
 export async function getTeamEfficiencyTrend(
   range: DateRange,
 ): Promise<WeeklyEfficiency[]> {

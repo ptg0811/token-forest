@@ -12,28 +12,25 @@ import {
 } from "@/lib/auth";
 import {
   getLatestLimits,
-  getMyEfficiency,
   getMyMachines,
   getUnmappedExternalIds,
   TOKENS_EXPR,
   type LimitSnapshot,
   type MachineStatus,
-  type MyEfficiency,
   type UnmappedRow,
 } from "@/lib/queries";
 import {
-  formatCompact,
   formatNumber,
   parseDays,
   rangeForDays,
   toolLabel,
-  type NumStyle,
 } from "@/app/_lib/ui";
 import { getNumStyle } from "@/app/_lib/numfmt";
 import { Card, EmptyState, PageHeader, RangeTabs } from "@/app/_components/ui";
 import { AccountLimits } from "@/app/_components/limits";
 import { MemberUsagePanel } from "@/app/_components/MemberUsagePanel";
 import GrowthCard from "./GrowthCard";
+import Scorecard from "./Scorecard";
 import {
   ClaimButton,
   CopilotForm,
@@ -64,7 +61,6 @@ type MemberOnboarding = {
   myLimits: LimitSnapshot[];
   unmapped: UnmappedRow[];
   machines: MachineStatus[];
-  efficiency: MyEfficiency;
 };
 
 async function loadOnboarding(
@@ -88,7 +84,6 @@ async function loadOnboarding(
     limits,
     unmapped,
     machines,
-    efficiency,
     customPresent,
   ] = await Promise.all([
       MemberIdentity.find({ memberId: oid }).lean(),
@@ -116,7 +111,6 @@ async function loadOnboarding(
       getLatestLimits(memberId),
       getUnmappedExternalIds(),
       getMyMachines(email),
-      getMyEfficiency(memberId, rangeForDays(28)),
       // A custom tool counts as connected once any usage row exists for this
       // member (manual entries are recorded with memberId). toolPrefs is
       // stored lowercase but /manual preserves the typed case ("OpenCode"),
@@ -149,7 +143,6 @@ async function loadOnboarding(
     myLimits: limits,
     unmapped,
     machines,
-    efficiency,
   };
 }
 
@@ -190,130 +183,6 @@ function ChecklistRow({
       </div>
       {children && <div className="mt-2 pl-6 text-sm">{children}</div>}
     </div>
-  );
-}
-
-// ---- personal efficiency ----------------------------------------------------
-
-function fmtPct(v: number | null): string {
-  return v == null ? "—" : `${v.toFixed(0)}%`;
-}
-
-function fmtRatio(v: number | null): string {
-  return v == null ? "—" : v.toFixed(2);
-}
-
-function fmtTokens(v: number | null, style: NumStyle): string {
-  return v == null ? "—" : formatCompact(Math.round(v), style);
-}
-
-// Deterministic coaching hints — only fire on a clear gap vs the team, so a
-// member never sees advice invented to fill space.
-function efficiencyHints(eff: MyEfficiency): string[] {
-  const hints: string[] = [];
-  const { premiumShare, cacheHitRate } = eff;
-  if (
-    premiumShare.mine != null &&
-    premiumShare.team != null &&
-    premiumShare.mine > premiumShare.team + 20
-  ) {
-    hints.push(
-      "프리미엄 모델(Opus/Fable) 비중이 팀 평균보다 높습니다. 단순·반복 작업에는 경량 모델(Haiku/Sonnet)을 검토해 보세요.",
-    );
-  }
-  if (
-    cacheHitRate.mine != null &&
-    cacheHitRate.team != null &&
-    cacheHitRate.mine < cacheHitRate.team - 15
-  ) {
-    hints.push(
-      "캐시 적중률이 팀 평균보다 낮습니다. 세션을 자주 새로 열면 캐시 재사용이 끊깁니다 — 관련 작업은 한 세션에서 이어서 진행해 보세요.",
-    );
-  }
-  return hints;
-}
-
-function EfficiencySection({
-  eff,
-  numStyle,
-}: {
-  eff: MyEfficiency;
-  numStyle: NumStyle;
-}) {
-  const rows: Array<{ label: string; tip: string; mine: string; team: string }> = [
-    {
-      label: "캐시 적중률",
-      tip: "cacheRead / (input + cacheRead) — 높을수록 같은 컨텍스트를 저렴하게 재사용",
-      mine: fmtPct(eff.cacheHitRate.mine),
-      team: fmtPct(eff.cacheHitRate.team),
-    },
-    {
-      label: "프리미엄 모델 비중",
-      tip: "비용 가중치 기준 Opus/Fable급 모델이 차지하는 비율",
-      mine: fmtPct(eff.premiumShare.mine),
-      team: fmtPct(eff.premiumShare.team),
-    },
-    {
-      label: "세션당 토큰 (Claude Code)",
-      tip: "(input+output) ÷ 세션 수 — 세션당 작업 규모",
-      mine: fmtTokens(eff.tokensPerSession.mine, numStyle),
-      team: fmtTokens(eff.tokensPerSession.team, numStyle),
-    },
-    {
-      label: "요청당 토큰",
-      tip: "(input+output) ÷ 요청 수 (캐시 제외) — 호출 한 번의 신선한 작업량. 팀 평균보다 크면 적은 횟수로 무겁게 쓴다는 뜻. 재사용되는 맥락의 크기는 위 캐시 적중률과 함께 보세요",
-      mine: fmtTokens(eff.tokensPerRequest.mine, numStyle),
-      team: fmtTokens(eff.tokensPerRequest.team, numStyle),
-    },
-    {
-      label: "출력/입력 비율",
-      tip: "output ÷ input (캐시 제외)",
-      mine: fmtRatio(eff.outputPerInput.mine),
-      team: fmtRatio(eff.outputPerInput.team),
-    },
-  ];
-  const hints = efficiencyHints(eff);
-  return (
-    <Card title="내 사용 효율" hint="최근 28일 · 본인에게만 표시">
-      <table className="w-full max-w-lg text-sm">
-        <thead>
-          <tr className="text-left text-xs text-[var(--text-muted)]">
-            <th className="pb-2 font-medium">지표</th>
-            <th className="pb-2 text-right font-medium">나</th>
-            <th className="pb-2 text-right font-medium">팀 전체</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.label} className="border-t border-black/5 dark:border-white/5">
-              <td className="py-2" title={r.tip}>
-                {r.label}
-              </td>
-              <td className="py-2 text-right font-medium tabular-nums">{r.mine}</td>
-              <td className="py-2 text-right tabular-nums text-[var(--text-muted)]">
-                {r.team}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {hints.length > 0 && (
-        <ul className="mt-3 space-y-2">
-          {hints.map((h) => (
-            <li
-              key={h}
-              className="rounded-lg border border-[var(--series-3)]/40 bg-[var(--series-3)]/5 px-3 py-2 text-xs text-[var(--text-secondary)]"
-            >
-              💡 {h}
-            </li>
-          ))}
-        </ul>
-      )}
-      <p className="mt-3 text-[11px] text-[var(--text-muted)]">
-        토큰은 투입량이라 업무 성과·능률을 나타내지 않습니다. 이 지표는 본인의 사용
-        패턴 점검용으로만 제공됩니다.
-      </p>
-    </Card>
   );
 }
 
@@ -506,12 +375,7 @@ async function MemberView({
             </Card>
           )}
 
-          {(data.efficiency.cacheHitRate.mine != null ||
-            data.efficiency.outputPerInput.mine != null ||
-            data.efficiency.tokensPerSession.mine != null ||
-            data.efficiency.tokensPerRequest.mine != null) && (
-            <EfficiencySection eff={data.efficiency} numStyle={numStyle} />
-          )}
+          <Scorecard memberId={member.id} />
         </>
       ) : (
         <>
