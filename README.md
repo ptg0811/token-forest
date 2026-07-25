@@ -144,11 +144,40 @@ pnpm report --dry-run              # 주간 슬랙 리포트 미리보기
 각 구성원은 macOS 메뉴바에서 자기 사용량을 **숲 성장** 게임으로 볼 수 있다. 서버가
 크로스기기 집계에서 성장 포인트를 계산하므로 어느 기기에서 열어도 같은 나무다.
 
-- 클라이언트: `clients/xbar/`(xbar/SwiftBar 플러그인). 설치는 그 폴더 README 참고.
 - 서버 엔드포인트: `GET /api/me/summary`(본인 `tmk_` 토큰 인증, 개인 데이터만).
 - 성장 규칙: 온보딩 이후 **활동일·꾸준함(스트릭)·효율(캐시 적중·툴 다양성)**에만
   연동 — 토큰 소비량은 성장에 기여하지 않는다(과소비 유인 차단). 엔진은
   `src/lib/growth.ts`(순수 함수), 검증은 `src/scripts/verify-growth.ts`.
+
+### 네이티브 앱 (macOS, 권장)
+
+메뉴바 아이콘이 자기 스테이지 나무(+스트릭 🔥)를 보여주고, 클릭하면 밤낮·sway·동물이
+있는 미니 장면과 GP 게이지, API 리밋 게이지, "숲 열기" 버튼이 뜬다.
+
+**요구사항:** macOS 14+, 그리고 [uploader](#구성원-온보딩-셀프서비스)가 먼저 설치되어
+있어야 한다 — 앱은 uploader가 만든 `~/.config/token-forest/config.json`을 그대로
+재사용한다(추가 설정 없음).
+
+**설치 (한 줄):**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ptg0811/token-forest/main/clients/macos/install.sh | bash
+```
+
+**미서명 앱 안내:** 이 앱은 Apple 개발자 서명이 없다(애드혹 서명만). 위 설치 스크립트는
+`curl`로 받기 때문에 quarantine 속성이 붙지 않아 Gatekeeper 마찰 없이 바로 실행된다.
+대신 브라우저로 릴리스의 `TokenForest.zip`을 직접 받아 설치한 경우 macOS가 실행을
+막을 수 있다 — 이때는 **시스템 설정 → 개인정보 보호 및 보안**에서 "그래도 열기"를
+눌러 실행을 허용한다.
+
+**선택 설정:** 대시보드가 수집 서버와 다른 주소에 있다면 config.json에
+`"dashboardUrl": "https://app.example.com"` 키를 추가한다(미설정 시 `serverUrl`로
+폴백) — "숲 열기" 버튼이 이 주소를 연다.
+
+### 경량 대안 (비macOS·xbar 사용자)
+
+- 클라이언트: `clients/xbar/`(xbar/SwiftBar 플러그인, macOS/Linux 겸용). 설치는 그
+  폴더 README 참고.
 
 ## 배포 (Docker)
 
