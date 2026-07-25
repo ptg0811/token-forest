@@ -65,10 +65,11 @@ pnpm report --dry-run              # 주간 슬랙 리포트 미리보기
 
 ## 구성원 온보딩 (셀프서비스)
 
-구성원은 Tailscale로 대시보드에 접속하면 자동 식별되고, **`/me`(내 사용량)**에서
-프로필 생성 → 연결 체크리스트를 스스로 완주한다. 관리자 개입 불필요:
+구성원은 `app.<도메인>`으로 대시보드에 접속하면 신원인지 프록시(oauth2-proxy, Google
+로그인)가 자동 식별하고, **`/me`(내 사용량)**에서 프로필 생성 → 연결 체크리스트를
+스스로 완주한다. 관리자 개입 불필요:
 
-1. 신원인지 프록시(예: Tailscale)로 대시보드에 접속 → **회사 이메일로 로그인** →
+1. 신원인지 프록시(oauth2-proxy)로 대시보드에 접속 → **회사 이메일로 로그인** →
    대시보드 접속 (프록시 구성은 아래 [배포](#배포-docker) 참고)
 2. `/me`에서 프로필 생성(토큰 자동 발급)
 3. 체크리스트 항목별 "연결": Claude Code는 표시된 한 줄 명령(`curl …/install.sh | bash -s -- 토큰`)을
@@ -161,11 +162,17 @@ docker compose up -d --build
   `127.0.0.1:27201`로도 공개돼 관리 CLI·백업이 접근한다. 앱 포트(4700)도
   루프백으로만 publish — 외부 노출은 항상 리버스프록시가 담당.
 - **Coolify 배포**: 이 저장소를 Docker Compose 리소스로 등록하면 FQDN 지정·TLS
-  (Let's Encrypt)·Traefik 라우팅이 자동이다. env는 Coolify UI에서 입력.
-- **인증(대시보드)**: 앱은 신원인지 프록시가 주입하는 신원 헤더를 신뢰한다. 프록시
-  뒤에 둘 때만 `TOKEN_FOREST_TRUST_TAILSCALE_HEADERS=1`을 설정한다. 노출 방식은 선택 —
-  Tailscale `serve`(헤더 자동 주입), 또는 Coolify/Traefik·nginx 등 리버스프록시(TLS 종료
-  + 신원 헤더 주입). 헤더명은 프록시에 맞게 설정 가능.
+  (Let's Encrypt)·Traefik 라우팅이 자동이다. env는 Coolify UI에서 입력. Domains 필드에는
+  ingest 도메인 외에 `https://app.carbonlink.world:4180`도 추가한다(공백 없이!). env에는
+  `OAUTH2_PROXY_CLIENT_ID`·`OAUTH2_PROXY_CLIENT_SECRET`·`OAUTH2_PROXY_COOKIE_SECRET`과
+  `TOKEN_FOREST_IDENTITY_HEADER`·`TOKEN_FOREST_TRUST_IDENTITY_HEADERS`도 포함해야 한다.
+- **대시보드 (`app.<도메인>`)**: oauth2-proxy(Google 로그인)가 앞단이다. compose의
+  `dashboard-auth` 서비스가 인증 후 `X-Forwarded-Email`을 주입하고, 앱은
+  `TOKEN_FOREST_IDENTITY_HEADER=x-forwarded-email` + `TOKEN_FOREST_TRUST_IDENTITY_HEADERS=1`로
+  그 헤더를 신뢰한다. 다른 프록시(Authelia·Cloudflare Access·tailscale serve)도 이메일
+  주입 헤더명만 맞추면 동작한다. **주의: 신뢰를 켜기 전에 프록시가 클라이언트가 보낸
+  동명 헤더를 덮어쓰는지 확인할 것** — 그렇지 않으면 위조 가능하다. 검증:
+  `scripts/verify-app-auth.sh`.
 - 사용량 **수집 엔드포인트**는 공개 HTTPS로 노출할 수 있다 — 멤버가 VPN 없이
   업로드. 리버스프록시(Traefik 등)의 경로 화이트리스트로 `/api/ingest`·`/api/limits`·
   `/install.sh`·`/uploader.tgz`·`/api/me/summary` **5경로만** 통과시키고 나머지는
