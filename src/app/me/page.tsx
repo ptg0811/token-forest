@@ -4,7 +4,12 @@ import { cookies, headers } from "next/headers";
 import { Types } from "mongoose";
 import Link from "next/link";
 import { connectDb, Member, MemberIdentity, UsageDaily } from "@/lib/db";
-import { getViewer, SESSION_COOKIE } from "@/lib/auth";
+import {
+  getViewer,
+  identityHeaderName,
+  SESSION_COOKIE,
+  trustIdentityHeaders,
+} from "@/lib/auth";
 import {
   getLatestLimits,
   getMyEfficiency,
@@ -322,14 +327,14 @@ function recentLine(u: RecentUsage | undefined): string | null {
 
 // ---- views ------------------------------------------------------------------
 
-// "You made it" confirmation for members arriving via the tailnet — the
-// invite message's last instruction is "open this page", so seeing the badge
-// closes the loop that the Tailscale setup worked.
-function TailnetBadge({ email }: { email: string }) {
+// "You made it" confirmation for members arriving through the identity
+// proxy in front of the dashboard — seeing the badge closes the loop that
+// login worked, without naming the specific mechanism behind it.
+function IdentityBadge({ email }: { email: string }) {
   return (
     <p className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
       <span className="inline-block h-2 w-2 rounded-full bg-[var(--series-4)]" />
-      사내망(Tailscale) 연결 확인됨 — <code>{email}</code>
+      로그인 확인됨 — <code>{email}</code>
     </p>
   );
 }
@@ -339,14 +344,16 @@ function AnonymousView() {
     <div className="space-y-4">
       <Card title="접근 방법">
         <p className="text-sm text-[var(--text-secondary)]">
-          지금은 회사 네트워크(Tailscale)에 연결되지 않은 상태입니다. 관리자에게 받은
-          Tailscale 초대 메일을 수락한 뒤(앱 설치까지 자동 안내) 이 페이지를 다시 열면
-          신원이 자동으로 확인됩니다. 사내망 밖에서 계속하려면 아래에 인제스트 토큰을
-          붙여넣어 로그인하세요.
+          아직 신원이 확인되지 않았습니다. 팀 대시보드 주소(관리자 공지 참조)를 열고{" "}
+          <strong>회사 Google 계정으로 로그인</strong>하면 자동으로 신원이 확인됩니다.
+        </p>
+        <p className="mt-2 text-sm text-[var(--text-secondary)]">
+          이 주소에서 계속하려면 발급받은 인제스트 토큰(<code>tmk_…</code>)으로
+          로그인하세요.
         </p>
         <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[var(--text-muted)]">
-          <li>Tailscale 초대 수락 → 재접속 → 이메일 신원으로 자동 인식</li>
-          <li>토큰 로그인 → 이미 발급받은 <code>tmk_…</code> 토큰 사용</li>
+          <li>Google 로그인 → 이메일 신원으로 자동 인식</li>
+          <li>또는 아래 토큰 로그인 (팀 등록 시 발급된 <code>tmk_</code> 토큰)</li>
         </ul>
       </Card>
       <Card title="토큰으로 로그인">
@@ -359,7 +366,7 @@ function AnonymousView() {
 function UnknownView({ email }: { email: string }) {
   return (
     <div className="space-y-4">
-      <TailnetBadge email={email} />
+      <IdentityBadge email={email} />
       <Card title="1분 만에 시작">
         <p className="mb-4 text-sm text-[var(--text-secondary)]">
           <code>{email}</code> 신원이 확인됐지만 아직 등록된 계정이 없습니다. 이름만 입력하면
@@ -415,11 +422,9 @@ async function MemberView({
     getNumStyle(),
     headers(),
   ]);
-  // Mirror getViewer's gate: the identity header is only meaningful behind
-  // `tailscale serve`. Cookie-session visitors don't get the badge.
-  const viaTailnet =
-    process.env.TOKEN_FOREST_TRUST_TAILSCALE_HEADERS === "1" &&
-    h.get("tailscale-user-login")?.trim().toLowerCase() === member.email;
+  // Mirror getViewer's gate: the identity header is only meaningful when the
+  // fronting proxy is trusted. Cookie-session visitors don't get the badge.
+  const viaProxy = trustIdentityHeaders() && Boolean(h.get(identityHeaderName()));
 
   const checks = {
     cursor: data.identityTools.has("cursor"),
@@ -431,7 +436,11 @@ async function MemberView({
     Object.values(checks).filter(Boolean).length +
     data.customTools.filter((c) => c.connected).length;
   const totalCount = 4 + data.customTools.length;
-  const installCmd = `curl -fsSL ${origin}/install.sh | bash -s -- ${member.ingestToken ?? "<토큰>"}`;
+  // Install host is the public ingest domain — the dashboard host sits behind
+  // the login proxy, and curl can't pass through that.
+  const ingestHost = process.env.INGEST_HOST;
+  const installOrigin = ingestHost ? `https://${ingestHost}` : origin;
+  const installCmd = `curl -fsSL ${installOrigin}/install.sh | bash -s -- ${member.ingestToken ?? "<토큰>"}`;
 
   // First visit (no onboardedAt) or explicit re-run (?step=…) → wizard.
   const showWizard = !data.onboardedAt || Boolean(step);
@@ -445,7 +454,7 @@ async function MemberView({
     return (
       <div className="space-y-4">
         <PageHeader title="내 사용량" />
-        {viaTailnet && <TailnetBadge email={member.email} />}
+        {viaProxy && <IdentityBadge email={member.email} />}
         <OnboardingWizard
           memberName={member.name}
           email={member.email}
