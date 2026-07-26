@@ -21,6 +21,7 @@ import { readdir, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 import { createInterface } from "node:readline";
+import { kstDate, kstHour } from "../lib/kst.mjs";
 
 export const tool = "claude_code";
 
@@ -52,7 +53,7 @@ function num(v) {
   return typeof v === "number" && Number.isFinite(v) ? v : 0;
 }
 
-// Aggregate every transcript into daily rows keyed by (UTC date, model).
+// Aggregate every transcript into daily rows keyed by (KST date, model).
 // `sinceDate` is an inclusive "YYYY-MM-DD" lower bound; days before it are
 // skipped. Returns { rows, stats }.
 export async function aggregate({ sinceDate, machineId = "" } = {}) {
@@ -127,9 +128,9 @@ export async function aggregate({ sinceDate, machineId = "" } = {}) {
       if (!ts) continue;
       const parsed = new Date(ts);
       if (Number.isNaN(parsed.getTime())) continue;
-      const date = parsed.toISOString().slice(0, 10); // UTC YYYY-MM-DD
+      const date = kstDate(ts); // KST YYYY-MM-DD
       if (sinceDate && date < sinceDate) continue;
-      const hour = parsed.toISOString().slice(0, 13); // UTC YYYY-MM-DDTHH
+      const hour = kstHour(ts); // KST YYYY-MM-DDTHH
 
       stats.counted++;
 
