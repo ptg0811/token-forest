@@ -29,5 +29,5 @@ export function todayKst(): string {
 // from the same day, not their personal onboarding). Mirrors sync.ts's
 // first-run backfill floor.
 export function teamEpoch(): string {
-  return process.env.TOKEN_FOREST_BACKFILL_START ?? isoDaysAgo(30);
+  return process.env.TOKEN_FOREST_BACKFILL_START || addDays(todayKst(), -30);
 }
