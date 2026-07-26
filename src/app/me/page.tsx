@@ -540,7 +540,7 @@ async function MemberView({
                     {r.lastDate}
                   </td>
                   <td className="py-2 text-right">
-                    <ClaimButton tool={r.tool} externalId={r.externalId} />
+                    <ClaimButton tool={r.tool} externalId={r.externalId} claimable={r.claimable} />
                   </td>
                 </tr>
               ))}
