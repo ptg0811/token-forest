@@ -109,7 +109,7 @@ async function loadOnboarding(
         },
       ]),
       getLatestLimits(memberId),
-      getUnmappedExternalIds(),
+      getUnmappedExternalIds(email),
       getMyMachines(email),
       // A custom tool counts as connected once any usage row exists for this
       // member (manual entries are recorded with memberId). toolPrefs is
@@ -540,7 +540,7 @@ async function MemberView({
                     {r.lastDate}
                   </td>
                   <td className="py-2 text-right">
-                    <ClaimButton tool={r.tool} externalId={r.externalId} />
+                    <ClaimButton tool={r.tool} externalId={r.externalId} claimable={r.claimable} />
                   </td>
                 </tr>
               ))}

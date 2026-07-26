@@ -195,14 +195,23 @@ export function CopilotForm() {
 export function ClaimButton({
   tool,
   externalId,
+  claimable = true,
 }: {
   tool: string;
   externalId: string;
+  claimable?: boolean;
 }) {
   const [state, action, pending] = useActionState<MeState, FormData>(
     claimUnmapped,
     {},
   );
+  if (!claimable) {
+    return (
+      <span className="text-xs text-[var(--text-muted)]">
+        다른 구성원의 기록 (본인만 연결 가능)
+      </span>
+    );
+  }
   if (state.ok) {
     return <span className="text-xs text-[var(--series-4)]">연결됨</span>;
   }

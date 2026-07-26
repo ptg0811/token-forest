@@ -388,8 +388,9 @@ export function OnboardingWizard(props: {
                     혹시 이 기록이 내 것인가요?
                   </h3>
                   <p className="mb-2 text-xs text-[var(--text-muted)]">
-                    등록 이메일(<code>{props.email}</code>)과 다른 ID로 남은 기록이에요.
-                    내 것이면 연결해 주세요.
+                    등록 이메일(<code>{props.email}</code>)과 다른 ID로 남은
+                    기록이에요. 이메일로 남은 기록은 로그인 계정에 자동 연결되고,
+                    이메일이 아닌 ID만 본인 것이면 연결할 수 있어요.
                   </p>
                   <table className="w-full max-w-lg text-sm">
                     <tbody>
@@ -404,7 +405,7 @@ export function OnboardingWizard(props: {
                             {r.tokens ? formatNumber(r.tokens) : "—"}
                           </td>
                           <td className="py-2 text-right">
-                            <ClaimButton tool={r.tool} externalId={r.externalId} />
+                            <ClaimButton tool={r.tool} externalId={r.externalId} claimable={r.claimable} />
                           </td>
                         </tr>
                       ))}
