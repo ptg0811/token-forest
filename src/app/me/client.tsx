@@ -201,6 +201,10 @@ export function ClaimButton({
   externalId: string;
   claimable?: boolean;
 }) {
+  const [state, action, pending] = useActionState<MeState, FormData>(
+    claimUnmapped,
+    {},
+  );
   if (!claimable) {
     return (
       <span className="text-xs text-[var(--text-muted)]">
@@ -208,10 +212,6 @@ export function ClaimButton({
       </span>
     );
   }
-  const [state, action, pending] = useActionState<MeState, FormData>(
-    claimUnmapped,
-    {},
-  );
   if (state.ok) {
     return <span className="text-xs text-[var(--series-4)]">연결됨</span>;
   }

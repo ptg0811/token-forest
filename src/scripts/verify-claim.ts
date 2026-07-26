@@ -40,5 +40,9 @@ check(
 check("openai id allowed", canClaim("user-IGeRPIPM0PRCMzlIu9O9mKGq", "cpo@renewearth-lab.com") === true);
 check("github handle allowed", canClaim("octocat", "cpo@renewearth-lab.com") === true);
 
+// canClaim: empty viewer email — email blocked, non-email still allowed
+check("email with empty viewer blocked", canClaim("a@b.com", "") === false);
+check("non-email with empty viewer allowed", canClaim("octocat", "") === true);
+
 console.log(`PASS=${pass} FAIL=${fail}`);
 process.exit(fail === 0 ? 0 : 1);

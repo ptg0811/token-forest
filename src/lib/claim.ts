@@ -12,5 +12,6 @@ export function isEmailId(externalId: string): boolean {
 
 export function canClaim(externalId: string, viewerEmail: string): boolean {
   if (!isEmailId(externalId)) return true;
+  if (!viewerEmail) return false;
   return externalId.toLowerCase() === viewerEmail.toLowerCase();
 }
