@@ -1,5 +1,7 @@
 // Shared presentation helpers used by both server pages and client charts.
 
+import { addDays, todayKst } from "@/lib/date";
+
 const TOOL_LABELS: Record<string, string> = {
   cursor: "Cursor",
   claude_code: "Claude Code",
@@ -91,15 +93,13 @@ export const RANGE_PRESETS = [
   { days: 90, label: "최근 90일" },
 ] as const;
 
-function toISODate(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
+// Range is inclusive [from, to] in KST — "오늘"(to) must match the team's wall
+// clock, and `from` is (days-1) KST-days earlier. addDays shifts a YYYY-MM-DD
+// string by whole days (timezone-neutral), so no re-derivation of the instant.
 export function rangeForDays(days: number): { from: string; to: string } {
-  const to = new Date();
-  const from = new Date();
-  from.setUTCDate(from.getUTCDate() - (days - 1));
-  return { from: toISODate(from), to: toISODate(to) };
+  const to = todayKst();
+  const from = addDays(to, -(days - 1));
+  return { from, to };
 }
 
 export function parseDays(value: string | undefined, fallback = 30): number {
