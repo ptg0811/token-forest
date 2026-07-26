@@ -160,18 +160,78 @@ const TROUBLESHOOT: { q: string; a: React.ReactNode }[] = [
     q: "Claude 계정을 여러 개 쓰는데 한도를 각각 볼 수 있나요?",
     a: (
       <>
-        네. 계정을 번갈아 로그인해 쓰는 경우엔 자동으로 계정별로 나뉘어 기록됩니다(업로더가
-        실행 시점에 로그인된 계정을 스냅샷). 여러 계정을 <strong>동시에</strong> 추적하려면
-        계정별 CLAUDE_CONFIG_DIR 디렉터리를{" "}
-        <code className="rounded bg-black/5 px-1 dark:bg-white/10">--claude-dir</code> 또는{" "}
-        <code className="rounded bg-black/5 px-1 dark:bg-white/10">TOKEN_FOREST_CLAUDE_DIRS</code>
-        로 지정하세요. 보조 프로필의 로그인 토큰은 업로더가 만료 전에{" "}
-        <strong>자동으로 갱신</strong>하므로 한 번 로그인해 두면 재로그인이 필요 없습니다.
-        게이지를 지금 갱신하려면{" "}
-        <code className="rounded bg-black/5 px-1 dark:bg-white/10">
-          ~/.token-forest/run.sh --limits-only
-        </code>
-        를 실행하면 됩니다.
+        <p>
+          네. 핵심은 <strong>Claude Code가 계정마다 설정 폴더를 따로 둔다</strong>는
+          점입니다. 기본 계정은{" "}
+          <code className="rounded bg-black/5 px-1 dark:bg-white/10">~/.claude</code>, 두
+          번째 계정은 다른 폴더(예{" "}
+          <code className="rounded bg-black/5 px-1 dark:bg-white/10">~/.claude-team</code>
+          )에{" "}
+          <code className="rounded bg-black/5 px-1 dark:bg-white/10">CLAUDE_CONFIG_DIR</code>{" "}
+          로 로그인합니다. 업로더는 폴더별로 한도를 떠서 계정별로 나눠 보여줍니다.
+        </p>
+        <p className="mt-3">
+          <strong>한 계정을 번갈아 로그인만 한다면</strong> 설정이 필요 없습니다 —
+          업로더가 실행 순간 로그인된 계정을 스냅샷하므로, 각 계정은 그 계정이 켜져
+          있던 때만 갱신됩니다.
+        </p>
+        <p className="mt-3">
+          <strong>여러 계정을 동시에 추적하려면</strong> 계정마다 폴더를 만들어 등록합니다:
+        </p>
+        <ol className="mt-2 list-decimal space-y-2 pl-5">
+          <li>
+            <strong>폴더 확인</strong> —{" "}
+            <code className="rounded bg-black/5 px-1 dark:bg-white/10">
+              find ~ -maxdepth 3 -name .credentials.json
+            </code>{" "}
+            로 계정 폴더를 찾습니다.{" "}
+            <code className="rounded bg-black/5 px-1 dark:bg-white/10">~/.claude</code>{" "}
+            하나만 나오면 두 번째 계정 폴더가 아직 없는 것입니다.
+          </li>
+          <li>
+            <strong>두 번째 계정 로그인</strong> — 새 폴더에 <em>다른</em> 계정으로
+            로그인:{" "}
+            <code className="rounded bg-black/5 px-1 dark:bg-white/10">
+              CLAUDE_CONFIG_DIR=~/.claude-team claude
+            </code>{" "}
+            실행 후{" "}
+            <code className="rounded bg-black/5 px-1 dark:bg-white/10">/login</code>.{" "}
+            <strong>
+              ⚠️ 두 폴더가 같은 계정이면 하나로 합쳐져 따로 보이지 않습니다 — 반드시
+              이메일이 다른 계정을 넣으세요.
+            </strong>
+          </li>
+          <li>
+            <strong>업로더에 등록</strong> —{" "}
+            <code className="rounded bg-black/5 px-1 dark:bg-white/10">
+              ~/.config/token-forest/config.json
+            </code>{" "}
+            에{" "}
+            <code className="rounded bg-black/5 px-1 dark:bg-white/10">
+              &quot;claudeDirs&quot;: [&quot;~/.claude-team&quot;]
+            </code>{" "}
+            를 추가합니다(기본{" "}
+            <code className="rounded bg-black/5 px-1 dark:bg-white/10">~/.claude</code>{" "}
+            는 자동 포함되니 추가 폴더만 나열). 재설치로 하려면 설치 명령 앞에{" "}
+            <code className="rounded bg-black/5 px-1 dark:bg-white/10">
+              TOKEN_FOREST_CLAUDE_DIRS=&quot;~/.claude,~/.claude-team&quot;
+            </code>{" "}
+            를 붙여도 됩니다.
+          </li>
+          <li>
+            <strong>확인</strong> —{" "}
+            <code className="rounded bg-black/5 px-1 dark:bg-white/10">
+              ~/.token-forest/run.sh --limits-only
+            </code>{" "}
+            를 실행합니다. 계정이 2개면 한도 창(5시간·7일)까지 쳐서 스냅샷이 여러 개
+            올라가고, 대시보드 한도에 계정별로 나뉘어 표시됩니다.
+          </li>
+        </ol>
+        <p className="mt-3">
+          보조 계정의 로그인 토큰(약 8시간 만료)은 업로더가 만료 전{" "}
+          <strong>자동으로 갱신</strong>하므로 한 번만 로그인해 두면 재로그인이 필요
+          없습니다.
+        </p>
       </>
     ),
   },
