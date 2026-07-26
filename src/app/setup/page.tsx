@@ -142,6 +142,25 @@ const TROUBLESHOOT: { q: string; a: React.ReactNode }[] = [
     ),
   },
   {
+    q: "날짜별 집계는 어느 시간대 기준인가요? 과거 사용량은 얼마나 소급되나요?",
+    a: (
+      <>
+        <p>
+          날짜 경계는 <strong>KST(한국 표준시)</strong> 기준입니다 — 대시보드의 &lsquo;오늘&rsquo;은
+          한국 자정부터 시작합니다. Claude Code 사용량은 트랜스크립트의 실제 시각으로 KST에 정확히
+          담깁니다. 반면 Cursor·OpenAI·Copilot 은 각 서비스가 <strong>일 단위(UTC 리포트일)</strong>로만
+          제공해, 자정 부근에는 하루가 어긋나 보일 수 있습니다.
+        </p>
+        <p className="mt-3">
+          서버가 끌어오는 도구(Cursor 등)는 팀 추적 시작일부터 전체 소급됩니다. Claude Code 는 설치 시
+          최근 이력을 한 번 깊게 수집하지만, <strong>설치 이전에 이미 삭제된 트랜스크립트</strong>(기본
+          보존 30일)는 복구할 수 없어 신규 기기는 최대 약 30일까지만 소급됩니다. 설치 이후로는 세션마다
+          자동으로 누적됩니다.
+        </p>
+      </>
+    ),
+  },
+  {
     q: "설치하면 내 컴퓨터에 무엇이 생기나요?",
     a: (
       <ul className="space-y-2.5">
