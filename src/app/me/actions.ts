@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { connectDb, Digest, Member } from "@/lib/db";
 import { getViewer, requireMember, SESSION_COOKIE } from "@/lib/auth";
+import { canClaim } from "@/lib/claim";
 import { encryptSecret } from "@/lib/crypto";
 import { autoClaimEmailIdentities, registerIdentities } from "@/lib/usage";
 import { sendConnectorRequest, sendDigest } from "@/lib/slack";
@@ -126,6 +127,9 @@ export async function claimUnmapped(
   const tool = String(formData.get("tool") ?? "").trim();
   const externalId = String(formData.get("externalId") ?? "").trim();
   if (!tool || !externalId) return { ok: false, message: "잘못된 요청입니다." };
+  if (!canClaim(externalId, me.email)) {
+    return { ok: false, message: "본인 이메일 기록만 연결할 수 있습니다." };
+  }
 
   await registerIdentities([{ memberId: me.id, tool, externalId }]);
   revalidatePath("/me");
