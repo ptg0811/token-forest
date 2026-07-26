@@ -157,10 +157,11 @@ function collectMilestones(counts: Record<string, number>): {
   return { unlocked, next };
 }
 
-// today: 표시 기준 오늘(UTC). onboardedAt: YYYY-MM-DD 또는 null.
+// today: 표시 기준 오늘(KST). teamEpoch: 팀 추적 시작일 YYYY-MM-DD — GP는 개인
+// 온보딩일이 아니라 이 팀 공통 기준일부터 누적한다(등록 시점 무관 공정).
 export function computeGrowth(
   days: GrowthDay[],
-  onboardedAt: string | null,
+  teamEpoch: string,
   today: string,
 ): GrowthState {
   const DORMANT: GrowthState = {
@@ -169,11 +170,10 @@ export function computeGrowth(
     streakMultiplier: 1.0, efficiencyBonusToday: 0, vitality: "dozing", idleDays: 0,
     milestones: [], nextMilestone: null,
   };
-  if (!onboardedAt) return DORMANT;
 
-  // 온보딩 이후 활동일만.
+  // 팀 epoch 이후 활동일만. 활동이 없으면(위저드 완료와 무관) 휴면.
   const eligible = days
-    .filter((d) => d.date >= onboardedAt)
+    .filter((d) => d.date >= teamEpoch)
     .sort((a, b) => a.date.localeCompare(b.date));
   if (eligible.length === 0) return DORMANT;
 

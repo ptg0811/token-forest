@@ -3,7 +3,7 @@ import Link from "next/link";
 import { connectDb, Member } from "@/lib/db";
 import { getGrowthDays } from "@/lib/queries";
 import { computeGrowth } from "@/lib/growth";
-import { todayUtc } from "@/lib/date";
+import { todayKst, teamEpoch } from "@/lib/date";
 import { EmptyState } from "@/app/_components/ui";
 import { timeBand, hash32, treeLayout, pickAnimal, type TimeBand } from "@/lib/forest-scene";
 
@@ -27,14 +27,14 @@ export default async function ForestScene({ band }: { band?: TimeBand }) {
   await connectDb();
   const members = await Member.find({}, { name: 1, onboardedAt: 1 }).lean();
   if (members.length === 0) return <EmptyState message="등록된 구성원이 없습니다." />;
-  const today = todayUtc();
+  const today = todayKst();
   const trees = await Promise.all(
     members.map(async (m) => {
       const onboarded = m.onboardedAt
         ? new Date(m.onboardedAt).toISOString().slice(0, 10)
         : null;
       const days = await getGrowthDays(String(m._id), onboarded ?? "1970-01-01");
-      return { id: String(m._id), name: m.name, g: computeGrowth(days, onboarded, today) };
+      return { id: String(m._id), name: m.name, g: computeGrowth(days, teamEpoch(), today) };
     }),
   );
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDb, Member } from "@/lib/db";
 import { computeGrowth } from "@/lib/growth";
 import { getGrowthDays, getMyMachines, getLatestLimits } from "@/lib/queries";
-import { isoDaysAgo, todayUtc } from "@/lib/date";
+import { isoDaysAgo, todayKst, teamEpoch } from "@/lib/date";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     getLatestLimits(id),
   ]);
 
-  const growth = computeGrowth(days, onboarded, todayUtc());
+  const growth = computeGrowth(days, teamEpoch(), todayKst());
 
   // 최근 7일 활동 툴 수.
   const since7 = isoDaysAgo(7);

@@ -4,7 +4,7 @@ import { METRIC_INFO } from "@/lib/metric-info";
 import { getScorecardSums, getGrowthDays } from "@/lib/queries";
 import { connectDb, Member } from "@/lib/db";
 import { computeGrowth } from "@/lib/growth";
-import { todayUtc, isoDaysAgo } from "@/lib/date";
+import { todayKst, teamEpoch, isoDaysAgo, todayUtc } from "@/lib/date";
 import {
   EMPTY_SUMS, addSums, cacheReuseRatio, contextYield, sessionDepth,
   requestAnatomy, toolEntropy, median,
@@ -62,7 +62,7 @@ export default async function Scorecard({ memberId }: { memberId: string }) {
     ? new Date(me.onboardedAt).toISOString().slice(0, 10)
     : null;
   const days = await getGrowthDays(memberId, onboarded ?? "1970-01-01");
-  const g = computeGrowth(days, onboarded, todayUtc());
+  const g = computeGrowth(days, teamEpoch(), todayKst());
   const weeklyActive = days.filter((d) => d.date >= isoDaysAgo(7)).length;
 
   const others = [...perMember.values()];
