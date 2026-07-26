@@ -8,6 +8,7 @@ import {
   UsageDaily,
   UsageHourly,
 } from "@/lib/db";
+import { canClaim } from "@/lib/claim";
 import { isoDaysAgo } from "@/lib/date";
 import { RATES, estimateWeight, isPremiumModel, rateFamily } from "@/lib/pricing";
 import type { GrowthDay } from "@/lib/growth";
@@ -275,9 +276,12 @@ export type UnmappedRow = {
   tokens: number;
   requests: number;
   lastDate: string;
+  claimable: boolean;
 };
 
-export async function getUnmappedExternalIds(): Promise<UnmappedRow[]> {
+export async function getUnmappedExternalIds(
+  viewerEmail: string,
+): Promise<UnmappedRow[]> {
   await connectDb();
   const rows = await UsageDaily.aggregate([
     { $match: { memberId: null } },
@@ -297,6 +301,7 @@ export async function getUnmappedExternalIds(): Promise<UnmappedRow[]> {
     tokens: r.tokens,
     requests: r.requests,
     lastDate: r.lastDate,
+    claimable: canClaim(r._id.externalId, viewerEmail),
   }));
 }
 

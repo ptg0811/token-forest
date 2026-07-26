@@ -109,7 +109,7 @@ async function loadOnboarding(
         },
       ]),
       getLatestLimits(memberId),
-      getUnmappedExternalIds(),
+      getUnmappedExternalIds(email),
       getMyMachines(email),
       // A custom tool counts as connected once any usage row exists for this
       // member (manual entries are recorded with memberId). toolPrefs is

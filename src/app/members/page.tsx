@@ -21,7 +21,9 @@ async function dashboardUrl(): Promise<string> {
 export default async function MembersPage() {
   const [members, unmapped, origin] = await Promise.all([
     getMemberList(),
-    getUnmappedExternalIds(),
+    // Admin view: only the count/tools are shown, never the claim button, so
+    // there is no viewer to scope claimability to — the flag goes unused here.
+    getUnmappedExternalIds(""),
     dashboardUrl(),
   ]);
 
