@@ -14,15 +14,17 @@
 // it reads as ordinary shell. The single unavoidable `${TMPDIR:-/tmp}` is
 // escaped as `\${...}`.
 
-export function renderInstaller(serverUrl: string, dashboardUrl: string): string {
+export function renderInstaller(serverUrl: string, dashboardUrl: string, backfillStart: string): string {
   const safe = serverUrl.replace(/'/g, "'\\''");
   const safeDashboard = dashboardUrl.replace(/'/g, "'\\''");
+  const safeBackfill = backfillStart.replace(/'/g, "'\\''");
   return `#!/usr/bin/env bash
 set -euo pipefail
 
 # ─── injected by the server ─────────────────────────────────────────────
 SERVER_URL='${safe}'
 DASHBOARD_URL='${safeDashboard}'
+BACKFILL_START='${safeBackfill}'
 
 # ─── 출력 헬퍼 (한글) ────────────────────────────────────────────────────
 info() { printf '\\033[36m▶\\033[0m %s\\n' "$1"; }
@@ -261,7 +263,12 @@ if [ "$PLATFORM" = "macos" ]; then install_launchd; else install_cron; fi
 echo
 info "지금 한 번 업로드해 사용량을 확인합니다..."
 set +e
-"$RUNNER"
+if [ -n "$BACKFILL_START" ]; then
+  info "설치 첫 업로드는 팀 추적 시작일($BACKFILL_START)까지 소급 수집합니다..."
+  "$RUNNER" --since "$BACKFILL_START"
+else
+  "$RUNNER"
+fi
 RUN_STATUS=$?
 set -e
 if [ "$RUN_STATUS" -ne 0 ]; then
