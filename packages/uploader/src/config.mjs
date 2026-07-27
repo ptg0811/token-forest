@@ -6,8 +6,9 @@
 //   file:   ~/.config/token-forest/config.json  { "serverUrl", "token" }
 
 import { readFile } from "node:fs/promises";
-import { homedir, hostname } from "node:os";
+import { homedir } from "node:os";
 import path from "node:path";
+import { deviceId } from "./lib/device-id.mjs";
 
 const DEFAULT_SINCE_DAYS = 30;
 
@@ -25,11 +26,11 @@ function sanitizeMachineId(value) {
     .slice(0, 64);
 }
 
-// Default machineId: the local short hostname (domain stripped) so a member's
-// uploads from different machines add up instead of overwriting each other.
+// Default machineId: a persisted random device-id (UUID) so a member's uploads
+// from different machines add up instead of overwriting each other — without
+// ever revealing the hostname. Persisted at ~/.token-forest/device-id.
 export function defaultMachineId() {
-  const short = String(hostname() || "").split(".")[0];
-  return sanitizeMachineId(short);
+  return deviceId();
 }
 
 export function parseArgs(argv) {
