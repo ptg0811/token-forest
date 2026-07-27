@@ -157,6 +157,24 @@ const TROUBLESHOOT: { q: string; a: React.ReactNode }[] = [
     ),
   },
   {
+    q: "어떤 데이터를 수집하고, 기기 정보는 어떻게 다루나요?",
+    a: (
+      <>
+        <p>
+          수집 항목은 <strong>토큰 수·요청 수·모델·시각</strong>뿐입니다. 대화 내용·프롬프트·코드는
+          수집하지 않습니다. 사용량은 기본 프로필(<code className="rounded bg-black/5 px-1 dark:bg-white/10">~/.claude</code>)만
+          대상이며, 개인 계정을 별도 <code className="rounded bg-black/5 px-1 dark:bg-white/10">CLAUDE_CONFIG_DIR</code>{" "}
+          프로필로 쓰면 수집에서 제외됩니다.
+        </p>
+        <p className="mt-3">
+          기기 식별자는 <strong>익명</strong>입니다 — 설치 시 만든 무작위 ID만 사용하고, 기기
+          이름(hostname)은 수집하지 않습니다. 여러 기기 사용량 합산은 이 익명 ID로 이뤄지고,
+          대시보드에는 &lsquo;기기 1·2·3&rsquo;으로만 표시됩니다.
+        </p>
+      </>
+    ),
+  },
+  {
     q: "Claude 계정을 여러 개 쓰는데 한도를 각각 볼 수 있나요?",
     a: (
       <>
