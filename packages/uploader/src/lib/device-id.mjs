@@ -17,9 +17,20 @@ export function deviceId() {
   const id = randomUUID();
   try {
     mkdirSync(path.dirname(ID_PATH), { recursive: true });
-    writeFileSync(ID_PATH, id + "\n", { mode: 0o600 });
+    // Exclusive create so concurrent runs (SessionEnd + hourly launchd) can't
+    // clobber each other; the loser re-reads the winner's id below.
+    writeFileSync(ID_PATH, id + "\n", { mode: 0o600, flag: "wx" });
+    return id;
   } catch (err) {
+    if (err && err.code === "EEXIST") {
+      try {
+        const won = readFileSync(ID_PATH, "utf8").trim();
+        if (won) return won;
+      } catch {
+        // fall through to ephemeral
+      }
+    }
     console.error(`warn: could not persist device-id (${err.message}); using ephemeral id`);
+    return id;
   }
-  return id;
 }

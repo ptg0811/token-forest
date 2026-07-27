@@ -13,6 +13,7 @@ check("uuid opaque", isOpaqueMachineId(UUID) === true);
 check("dev_ opaque", isOpaqueMachineId("dev_abc123def456") === true);
 check("hostname not opaque", isOpaqueMachineId("gildong-macbook") === false);
 check("empty not opaque", isOpaqueMachineId("") === false);
+check("dev_ + hostname NOT opaque", isOpaqueMachineId("dev_actual-hostname") === false);
 
 // anonymizeMachineId
 check("empty stays empty", anonymizeMachineId("") === "");
@@ -23,6 +24,8 @@ check("hostname -> dev_ token", /^dev_[0-9a-f]{12}$/.test(h));
 check("deterministic", anonymizeMachineId("gildong-macbook") === h);
 check("idempotent", anonymizeMachineId(h) === h);
 check("distinct hosts distinct tokens", anonymizeMachineId("a-mac") !== anonymizeMachineId("b-mac"));
+const dh = anonymizeMachineId("dev_myhost");
+check("dev_hostname gets hashed", /^dev_[0-9a-f]{12}$/.test(dh) && dh !== "dev_myhost");
 
 // deviceLabels
 const m = deviceLabels([UUID, "dev_abc123def456", ""]);
