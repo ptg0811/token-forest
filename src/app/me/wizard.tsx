@@ -12,6 +12,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { MachineStatus, UnmappedRow } from "@/lib/queries";
+import { deviceLabels } from "@/lib/machine-id";
 import { Card } from "@/app/_components/ui";
 import { formatNumber, toolLabel } from "@/app/_lib/ui";
 import {
@@ -218,6 +219,16 @@ export function OnboardingWizard(props: {
   // ---- step 3 state: install auto-detection (10s poll, this step only)
   const baseline = useRef(new Set(props.machines.map((m) => m.machineId)));
   const [detected, setDetected] = useState<string | null>(null);
+  // Pseudonymous "기기 N" label for the just-detected device — never show the
+  // raw machineId (device-id UUID) in the confirmation.
+  const machineLabelMap = useMemo(
+    () =>
+      deviceLabels([
+        ...props.machines.map((m) => m.machineId),
+        ...(detected ? [detected] : []),
+      ]),
+    [props.machines, detected],
+  );
   useEffect(() => {
     if (currentStep !== "claude" || detected) return;
     const t = setInterval(async () => {
@@ -437,7 +448,7 @@ export function OnboardingWizard(props: {
           </ol>
           {detected ? (
             <div className="mt-4 rounded-lg border border-[var(--series-4)]/50 bg-[var(--series-4)]/5 p-3 text-sm font-medium text-[var(--series-4)]">
-              ✅ {detected} 연결 확인됨!
+              ✅ {machineLabelMap.get(detected) ?? detected} 연결 확인됨!
             </div>
           ) : (
             <div className="mt-4 rounded-lg border border-dashed border-black/15 p-3 text-sm text-[var(--text-muted)] dark:border-white/15">

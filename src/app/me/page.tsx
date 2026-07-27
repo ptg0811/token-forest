@@ -26,6 +26,7 @@ import {
   toolLabel,
 } from "@/app/_lib/ui";
 import { getNumStyle } from "@/app/_lib/numfmt";
+import { deviceLabels } from "@/lib/machine-id";
 import { Card, EmptyState, PageHeader, RangeTabs } from "@/app/_components/ui";
 import { AccountLimits } from "@/app/_components/limits";
 import { MemberUsagePanel } from "@/app/_components/MemberUsagePanel";
@@ -310,6 +311,9 @@ async function MemberView({
   const ingestHost = process.env.INGEST_HOST;
   const installOrigin = ingestHost ? `https://${ingestHost}` : origin;
   const installCmd = `curl -fsSL ${installOrigin}/install.sh | bash -s -- ${member.ingestToken ?? "<토큰>"}`;
+  // Pseudonymous "기기 N" labels — the raw machineId (device-id UUID) is never
+  // shown; deviceLabels also renders the "" placeholder.
+  const machineLabelMap = deviceLabels(data.machines.map((m) => m.machineId));
 
   // First visit (no onboardedAt) or explicit re-run (?step=…) → wizard.
   const showWizard = !data.onboardedAt || Boolean(step);
@@ -446,7 +450,7 @@ async function MemberView({
                   <tbody>
                     {data.machines.map((m) => (
                       <tr key={m.machineId} className="border-t border-black/5 dark:border-white/5">
-                        <td className="py-1.5 font-mono">{m.machineId}</td>
+                        <td className="py-1.5 font-mono">{machineLabelMap.get(m.machineId) ?? m.machineId}</td>
                         <td className="py-1.5 text-right tabular-nums">{m.lastDate}</td>
                         <td className="py-1.5 text-right tabular-nums">
                           {formatNumber(m.recentTokens)}

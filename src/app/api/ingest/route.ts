@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDb, Member } from "@/lib/db";
+import { anonymizeMachineId } from "@/lib/machine-id";
 import { ingestPayloadSchema } from "@/lib/types";
 import {
   registerIdentities,
@@ -47,6 +48,7 @@ export async function POST(req: NextRequest) {
     .map((row) => ({
       ...row,
       externalId: member.email,
+      machineId: anonymizeMachineId(row.machineId ?? ""),
     }));
   if (rows.length === 0) {
     return NextResponse.json({ ok: true, upserted: 0, skipped: 0 });
@@ -66,6 +68,7 @@ export async function POST(req: NextRequest) {
     const hourly = parsed.data.hourly.map((row) => ({
       ...row,
       externalId: member.email,
+      machineId: anonymizeMachineId(row.machineId ?? ""),
     }));
     ({ upserted: hourlyUpserted } = await upsertHourlyRows(hourly));
   }

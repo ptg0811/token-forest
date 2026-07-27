@@ -434,7 +434,7 @@ export async function getMyMachines(email: string): Promise<MachineStatus[]> {
     { $sort: { lastDate: -1 } },
   ]);
   return rows.map((r) => ({
-    machineId: (r._id as string) || "(기기명 없음)",
+    machineId: (r._id as string) ?? "",
     lastDate: r.lastDate,
     recentTokens: r.recentTokens,
     recentRequests: r.recentRequests,
