@@ -161,7 +161,7 @@ pnpm report --dry-run              # 주간 슬랙 리포트 미리보기
 **설치 (한 줄):**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ptg0811/token-forest/main/clients/macos/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/renewearth/token-forest/main/clients/macos/install.sh | bash
 ```
 
 **미서명 앱 안내:** 이 앱은 Apple 개발자 서명이 없다(애드혹 서명만). 위 설치 스크립트는

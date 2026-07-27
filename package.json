@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ptg0811/token-forest.git"
+    "url": "https://github.com/renewearth/token-forest.git"
   },
   "scripts": {
     "dev": "next dev -p ${PORT:-3100}",

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # TokenForest 메뉴바 앱 설치 — curl 다운로드라 quarantine 미부착 (Gatekeeper 마찰 없음).
 set -euo pipefail
-REPO="ptg0811/token-forest"
+REPO="renewearth/token-forest"
 URL=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" \
   | grep -o '"browser_download_url": *"[^"]*TokenForest\.zip"' | head -1 | cut -d'"' -f4)
 if [ -z "$URL" ]; then
