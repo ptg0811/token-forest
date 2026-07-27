@@ -1,7 +1,7 @@
 import { connectDb, Member } from "@/lib/db";
 import { getGrowthDays } from "@/lib/queries";
 import { computeGrowth, MILESTONE_CATALOG, STAGE_CATALOG } from "@/lib/growth";
-import { todayUtc } from "@/lib/date";
+import { todayKst, teamEpoch } from "@/lib/date";
 import { Card } from "@/app/_components/ui";
 
 // 내 나무 카드: 스테이지·GP 게이지·스트릭·다음 마일스톤.
@@ -14,7 +14,7 @@ export default async function GrowthCard({ memberId }: { memberId: string }) {
     ? new Date(member.onboardedAt).toISOString().slice(0, 10)
     : null;
   const days = await getGrowthDays(memberId, onboarded ?? "1970-01-01");
-  const g = computeGrowth(days, onboarded, todayUtc());
+  const g = computeGrowth(days, teamEpoch(), todayKst());
 
   const total = g.gp + (g.toNextStage ?? 0);
   const pct =

@@ -48,7 +48,7 @@ export default async function OverviewPage({
         <RangeTabs days={days} base="/" />
       </PageHeader>
       <p className="-mt-4 mb-6 text-xs text-[var(--text-muted)]">
-        {range.from} ~ {range.to}
+        {range.from} ~ {range.to} · KST 기준
       </p>
 
       {/* 가장 첫 시각요소 = 팀 숲 (스펙: 통합 숲 장면) */}
@@ -134,6 +134,9 @@ export default async function OverviewPage({
             서버가 매 정시에 자동 동기화하며, 버튼은 Cursor·OpenAI·Copilot만 즉시
             갱신합니다. Claude Code 사용량·한도는 각 구성원 기기에서 매 정시 자동
             업로드됩니다.
+            Claude Code 사용량은 KST 기준으로 정확히 집계되고, 그 외 도구(Cursor·OpenAI·Copilot)는
+            소스의 리포트일(UTC)을 따라 자정 부근 하루가 어긋날 수 있습니다. 새로 설치한 기기의 Claude
+            Code 과거 이력은 최대 약 30일까지만 소급됩니다.
           </p>
         </Card>
       </div>

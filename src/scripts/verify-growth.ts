@@ -27,8 +27,8 @@ assert(g.streakDays === 0, `현재 스트릭=0, 3일 유휴 (got ${g.streakDays}
 assert(g.vitality === "dozing" && g.idleDays === 3, "졸음 · 유휴 3일");
 assert(g.milestones.includes("streak_3") && g.milestones.includes("tools_2"), "언락 🌸·🍄");
 
-// 발아 전(휴면): 온보딩 null → Lv0 🌰.
-const d0 = computeGrowth(days, null, "2026-07-23");
+// 팀 epoch가 모든 활동일보다 이후 → eligible 없음 → 휴면.
+const d0 = computeGrowth(days, "2027-01-01", "2027-01-01");
 assert(d0.level === 0 && d0.stage === "dormant" && d0.stageEmoji === "🌰", "Lv0 휴면");
 
 // 온보딩 후 활동 없음 → 휴면.
