@@ -1126,8 +1126,11 @@ function pivot(
   return { data, tools };
 }
 
-// 멤버의 날짜별 활동 재료. distinct 툴 목록 + claude_code input/cacheRead 합.
-// since(포함) 이후 날짜만. 성장엔진(src/lib/growth.ts) 입력용.
+// 멤버의 날짜별 활동 재료. distinct 툴 목록 + 에이전틱 툴(claude_code·codex)
+// input/cacheRead 합(효율 보너스 재료). since(포함) 이후 날짜만. 성장엔진 입력용.
+// 효율 보너스(캐시율)에 기여하는 에이전틱 툴. 활동일·스트릭·다양성은 전 툴 기준.
+const EFFICIENCY_TOOLS = ["claude_code", "codex"];
+
 export async function getGrowthDays(
   memberId: string,
   since: string,
@@ -1141,12 +1144,12 @@ export async function getGrowthDays(
         tools: { $addToSet: "$tool" },
         input: {
           $sum: {
-            $cond: [{ $eq: ["$tool", "claude_code"] }, { $ifNull: ["$inputTokens", 0] }, 0],
+            $cond: [{ $in: ["$tool", EFFICIENCY_TOOLS] }, { $ifNull: ["$inputTokens", 0] }, 0],
           },
         },
         cacheRead: {
           $sum: {
-            $cond: [{ $eq: ["$tool", "claude_code"] }, { $ifNull: ["$cacheReadTokens", 0] }, 0],
+            $cond: [{ $in: ["$tool", EFFICIENCY_TOOLS] }, { $ifNull: ["$cacheReadTokens", 0] }, 0],
           },
         },
       },

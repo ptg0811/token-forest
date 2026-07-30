@@ -41,4 +41,17 @@ assert(streakEndingAt(gap, "2026-07-13", "2026-07-10") === 3, "단일 갭 브릿
 const gap2 = new Set(["2026-07-10", "2026-07-13"]); // 11,12 연속 쉼
 assert(streakEndingAt(gap2, "2026-07-13", "2026-07-10") === 1, "2연속 갭 → 1");
 
+// 코덱스-only 활동일도 active day·툴 다양성에 반영된다(소비자측: computeGrowth는
+// 툴로 필터하지 않는다 — getGrowthDays가 codex 행을 넘겨주면 그대로 성장에 반영).
+const codexDays: GrowthDay[] = [
+  { date: "2026-07-18", tools: ["claude_code"], input: 1000, cacheRead: 9000 },
+  { date: "2026-07-19", tools: ["codex"], input: 500, cacheRead: 4500 },
+];
+const cg = computeGrowth(codexDays, "2026-07-18", "2026-07-19");
+assert(cg.activeDays === 2, `codex-only 날 포함 활동 2일 (got ${cg.activeDays})`);
+assert(
+  efficiencyBonus(codexDays[1]) >= 3,
+  `codex 캐시율 반영 효율보너스 ≥3 (got ${efficiencyBonus(codexDays[1])})`,
+);
+
 console.log("ALL PASS");
