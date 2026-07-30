@@ -198,14 +198,26 @@ async function main() {
       `${fmtInt(stats.synthetic)} synthetic, ${fmtInt(stats.malformed)} malformed lines skipped.`,
   );
 
-  // Codex CLI usage (~/.codex/sessions). Absent dir → empty result, no error.
-  const { rows: codexRows, hourlyRows: codexHourly, stats: codexStats } =
-    await codex.aggregate({ sinceDate: config.since, machineId: config.machineId });
-  if (codexStats.files > 0) {
-    console.error(
-      `Codex: scanned ${codexStats.files} rollout file(s), ` +
-        `${fmtInt(codexStats.events)} usage event(s).`,
-    );
+  // Codex CLI usage (~/.codex/sessions). Best-effort like the limits/digest
+  // blocks: any failure warns and degrades to empty so it never blocks the
+  // claude_code upload. (Missing dir is already handled inside the parser.)
+  let codexRows = [];
+  let codexHourly = [];
+  try {
+    const codexResult = await codex.aggregate({
+      sinceDate: config.since,
+      machineId: config.machineId,
+    });
+    codexRows = codexResult.rows;
+    codexHourly = codexResult.hourlyRows;
+    if (codexResult.stats.files > 0) {
+      console.error(
+        `Codex: scanned ${codexResult.stats.files} rollout file(s), ` +
+          `${fmtInt(codexResult.stats.events)} usage event(s).`,
+      );
+    }
+  } catch (err) {
+    console.error(`warn: skipped Codex scan (${err.message}).`);
   }
 
   const rows = [...claudeRows, ...codexRows];
