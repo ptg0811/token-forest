@@ -139,5 +139,34 @@ const ctx = (model) => ({ type: "turn_context", payload: { model } });
   eq("two hourly rows", hourlyRows.length, 2);
 }
 
+// assembleRows: two models same day, one file -> sessions on first row only.
+{
+  const f = [
+    { date: "2026-06-30", hour: "2026-06-30T01", model: "gpt-5.5",
+      inputTokens: 10, cacheReadTokens: 0, outputTokens: 1, cacheCreationTokens: 0 },
+    { date: "2026-06-30", hour: "2026-06-30T01", model: "gpt-5.3-codex",
+      inputTokens: 20, cacheReadTokens: 0, outputTokens: 2, cacheCreationTokens: 0 },
+  ];
+  const { rows } = assembleRows([f], "h");
+  eq("two models same day -> 2 rows", rows.length, 2);
+  // rows sorted by model: 'gpt-5.3-codex' before 'gpt-5.5'
+  eq("first row of day carries sessions=1", rows[0].sessions, 1);
+  eq("second same-day row sessions=null", rows[1].sessions, null);
+}
+
+// assembleRows: one file spanning two KST days -> +1 session on EACH day.
+{
+  const f = [
+    { date: "2026-06-30", hour: "2026-06-30T23", model: "gpt-5.5",
+      inputTokens: 10, cacheReadTokens: 0, outputTokens: 1, cacheCreationTokens: 0 },
+    { date: "2026-07-01", hour: "2026-07-01T00", model: "gpt-5.5",
+      inputTokens: 20, cacheReadTokens: 0, outputTokens: 2, cacheCreationTokens: 0 },
+  ];
+  const { rows } = assembleRows([f], "h");
+  eq("file spanning 2 days -> 2 rows", rows.length, 2);
+  eq("day1 sessions=1", rows[0].sessions, 1);
+  eq("day2 sessions=1", rows[1].sessions, 1);
+}
+
 console.log(fail === 0 ? `ALL PASS (${pass})` : `FAILED ${fail}/${pass + fail}`);
 process.exit(fail === 0 ? 0 : 1);
