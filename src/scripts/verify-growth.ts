@@ -1,5 +1,6 @@
 import { computeGrowth, efficiencyBonus, streakEndingAt } from "../lib/growth";
 import type { GrowthDay } from "../lib/growth";
+import { EFFICIENCY_TOOLS } from "../lib/queries";
 
 function assert(cond: boolean, msg: string) {
   if (!cond) { console.error("FAIL:", msg); process.exit(1); }
@@ -50,8 +51,12 @@ const codexDays: GrowthDay[] = [
 const cg = computeGrowth(codexDays, "2026-07-18", "2026-07-19");
 assert(cg.activeDays === 2, `codex-only 날 포함 활동 2일 (got ${cg.activeDays})`);
 assert(
-  efficiencyBonus(codexDays[1]) >= 3,
-  `codex 캐시율 반영 효율보너스 ≥3 (got ${efficiencyBonus(codexDays[1])})`,
+  efficiencyBonus(codexDays[1]) === 3,
+  `codex 캐시율 반영 효율보너스 =3 (got ${efficiencyBonus(codexDays[1])})`,
+);
+assert(
+  EFFICIENCY_TOOLS.includes("codex") && EFFICIENCY_TOOLS.includes("claude_code"),
+  "효율 재료 툴셋에 codex+claude_code 포함",
 );
 
 console.log("ALL PASS");

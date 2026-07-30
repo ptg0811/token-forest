@@ -4,8 +4,8 @@ import { addDays } from "./date";
 export type GrowthDay = {
   date: string; // YYYY-MM-DD (UTC)
   tools: string[]; // 그날 활동한 distinct 툴
-  input: number; // claude_code input 합
-  cacheRead: number; // claude_code cacheRead 합
+  input: number; // 에이전틱 툴(claude_code·codex) input 합
+  cacheRead: number; // 에이전틱 툴(claude_code·codex) cacheRead 합
 };
 
 export type GrowthState = {
