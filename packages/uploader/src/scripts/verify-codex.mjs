@@ -78,5 +78,38 @@ const ctx = (model) => ({ type: "turn_context", model });
   eq("KST hour", ev[0].hour, "2026-06-27T00");
 }
 
+// 6. Malformed timestamp is skipped without crashing.
+{
+  const ev = foldSession([
+    ctx("gpt-5.5"),
+    tc("not-a-date", 100, 0, 10),
+    tc("2026-06-26T02:05:00Z", 200, 0, 20),
+  ]);
+  eq("malformed timestamp skipped -> 1 event", ev.length, 1);
+  eq("malformed timestamp: surviving event input", ev[0].inputTokens, 200);
+}
+
+// 7. Partial-field drop (a field missing from a snapshot) must not force a
+// full-total rebaseline of the other fields, which would double-count them.
+{
+  const ev = foldSession([
+    ctx("gpt-5.5"),
+    tc("2026-06-26T02:00:00Z", 100, 50, 10),
+    {
+      type: "event_msg",
+      timestamp: "2026-06-26T02:05:00Z",
+      payload: { type: "token_count", info: {
+        total_token_usage: { input_tokens: 150, output_tokens: 15 }, // cached_input_tokens omitted
+      } },
+    },
+  ]);
+  eq("partial-field drop -> 2 events", ev.length, 2);
+  // cached drops 50 -> 0 (missing), so only `cached` rebaselines to 0; input/output
+  // keep their real baselines (100/10). dInput=50, dCached=0, dOutput=5.
+  eq("partial-field drop: outputTokens delta not double-counted", ev[1].outputTokens, 5);
+  eq("partial-field drop: inputTokens not re-counting full total", ev[1].inputTokens, 50);
+  eq("partial-field drop: cacheReadTokens", ev[1].cacheReadTokens, 0);
+}
+
 console.log(fail === 0 ? `ALL PASS (${pass})` : `FAILED ${fail}/${pass + fail}`);
 process.exit(fail === 0 ? 0 : 1);

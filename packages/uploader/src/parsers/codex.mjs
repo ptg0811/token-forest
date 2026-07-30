@@ -38,21 +38,29 @@ export function foldSession(lines) {
     const info = entry.payload.info?.total_token_usage;
     const ts = entry.timestamp;
     if (!info || !ts) continue;
+    const parsed = new Date(ts);
+    if (Number.isNaN(parsed.getTime())) continue;
 
     const totInput = num(info.input_tokens);
     const totCached = num(info.cached_input_tokens);
     const totOutput = num(info.output_tokens);
 
-    // Reset detection: any field below the running baseline → rebaseline to 0.
-    if (!started || totInput < prev.input || totOutput < prev.output || totCached < prev.cached) {
-      prev.input = 0; prev.cached = 0; prev.output = 0;
-    }
+    // Reset detection is PER-FIELD and independent: a field dropping below its
+    // own baseline rebaselines only that field to 0. Fields are coerced to 0
+    // when absent (see `num`), so a snapshot that simply omits one field (e.g.
+    // no cached_input_tokens) must not force a full-total rebaseline — that
+    // would re-count everything already attributed and double-count.
+    const baseInput = !started || totInput < prev.input ? 0 : prev.input;
+    const baseCached = !started || totCached < prev.cached ? 0 : prev.cached;
+    const baseOutput = !started || totOutput < prev.output ? 0 : prev.output;
     started = true;
 
-    const dInput = Math.max(0, totInput - prev.input);
-    const dCached = Math.max(0, totCached - prev.cached);
-    const dOutput = Math.max(0, totOutput - prev.output);
-    prev.input = totInput; prev.cached = totCached; prev.output = totOutput;
+    const dInput = totInput - baseInput;
+    const dCached = totCached - baseCached;
+    const dOutput = totOutput - baseOutput;
+    prev.input = totInput;
+    prev.cached = totCached;
+    prev.output = totOutput;
 
     if (dInput === 0 && dCached === 0 && dOutput === 0) continue;
 
