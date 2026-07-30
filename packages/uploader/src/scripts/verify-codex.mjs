@@ -1,5 +1,5 @@
 // Unit tests for the codex parser's pure core (foldSession). Run with node.
-import { foldSession } from "../parsers/codex.mjs";
+import { foldSession, assembleRows } from "../parsers/codex.mjs";
 
 let pass = 0, fail = 0;
 function check(label, cond) {
@@ -109,6 +109,34 @@ const ctx = (model) => ({ type: "turn_context", model });
   eq("partial-field drop: outputTokens delta not double-counted", ev[1].outputTokens, 5);
   eq("partial-field drop: inputTokens not re-counting full total", ev[1].inputTokens, 50);
   eq("partial-field drop: cacheReadTokens", ev[1].cacheReadTokens, 0);
+}
+
+// assembleRows: merge per-file event lists into daily rows + hourly mirror.
+{
+  const fileA = [
+    { date: "2026-06-26", hour: "2026-06-26T02", model: "gpt-5.5",
+      inputTokens: 100, cacheReadTokens: 0, outputTokens: 10, cacheCreationTokens: 0 },
+    { date: "2026-06-26", hour: "2026-06-26T02", model: "gpt-5.5",
+      inputTokens: 50, cacheReadTokens: 20, outputTokens: 5, cacheCreationTokens: 0 },
+  ];
+  const fileB = [
+    { date: "2026-06-26", hour: "2026-06-26T09", model: "gpt-5.5",
+      inputTokens: 30, cacheReadTokens: 0, outputTokens: 3, cacheCreationTokens: 0 },
+  ];
+  const { rows, hourlyRows } = assembleRows([fileA, fileB], "test-host");
+
+  eq("one daily row (same date|model)", rows.length, 1);
+  eq("row tool", rows[0].tool, "codex");
+  eq("row input summed", rows[0].inputTokens, 180);
+  eq("row cacheRead summed", rows[0].cacheReadTokens, 20);
+  eq("row output summed", rows[0].outputTokens, 18);
+  eq("row requests = events", rows[0].requests, 3);
+  eq("row machineId", rows[0].machineId, "test-host");
+  eq("row source", rows[0].source, "uploader");
+  // two files active that day -> sessions = 2, on the (only/first) row
+  eq("sessions = distinct files that day", rows[0].sessions, 2);
+  // hourly mirror keeps the two hours distinct
+  eq("two hourly rows", hourlyRows.length, 2);
 }
 
 console.log(fail === 0 ? `ALL PASS (${pass})` : `FAILED ${fail}/${pass + fail}`);

@@ -8,10 +8,13 @@
 // drops) rebaselines. `input_tokens` INCLUDES cached, so non-cache input =
 // input_tokens − cached_input_tokens. Codex exposes no cache-write metric.
 //
-// Sibling of claude-code.mjs — same { tool, aggregate } contract (aggregate
-// lands in a follow-up task; this file currently only exports the pure fold
-// core, foldSession).
+// Sibling of claude-code.mjs — same { tool, aggregate } contract.
 
+import { createReadStream } from "node:fs";
+import { readdir, stat } from "node:fs/promises";
+import { homedir } from "node:os";
+import path from "node:path";
+import { createInterface } from "node:readline";
 import { kstDate, kstHour } from "../lib/kst.mjs";
 
 export const tool = "codex";
@@ -75,4 +78,145 @@ export function foldSession(lines) {
     });
   }
   return events;
+}
+
+// Merge per-file event lists (each = foldSession output for one rollout) into
+// daily rows and an hourly mirror. sessions = number of files with activity on
+// a given day, attached to that day's FIRST row only (consumers SUM sessions).
+export function assembleRows(fileEvents, machineId = "") {
+  const days = new Map();   // `${date}|${model}` -> acc
+  const hours = new Map();  // `${hour}|${model}` -> acc
+  const sessionsByDay = new Map(); // date -> count of files active that day
+
+  fileEvents.forEach((events) => {
+    const daysTouched = new Set();
+    for (const e of events) {
+      daysTouched.add(e.date);
+      const dk = `${e.date}|${e.model}`;
+      let d = days.get(dk);
+      if (!d) {
+        d = { date: e.date, model: e.model, inputTokens: 0, outputTokens: 0,
+              cacheReadTokens: 0, cacheCreationTokens: 0, requests: 0 };
+        days.set(dk, d);
+      }
+      d.inputTokens += e.inputTokens;
+      d.outputTokens += e.outputTokens;
+      d.cacheReadTokens += e.cacheReadTokens;
+      d.cacheCreationTokens += e.cacheCreationTokens;
+      d.requests += 1;
+
+      const hk = `${e.hour}|${e.model}`;
+      let h = hours.get(hk);
+      if (!h) {
+        h = { hour: e.hour, model: e.model, inputTokens: 0, outputTokens: 0,
+              cacheReadTokens: 0, cacheCreationTokens: 0, requests: 0 };
+        hours.set(hk, h);
+      }
+      h.inputTokens += e.inputTokens;
+      h.outputTokens += e.outputTokens;
+      h.cacheReadTokens += e.cacheReadTokens;
+      h.cacheCreationTokens += e.cacheCreationTokens;
+      h.requests += 1;
+    }
+    for (const date of daysTouched) {
+      sessionsByDay.set(date, (sessionsByDay.get(date) ?? 0) + 1);
+    }
+  });
+
+  const rows = [...days.values()]
+    .sort((a, b) =>
+      a.date === b.date ? a.model.localeCompare(b.model) : a.date.localeCompare(b.date))
+    .map((acc, i, sorted) => ({
+      date: acc.date,
+      tool,
+      model: acc.model,
+      machineId,
+      inputTokens: acc.inputTokens,
+      outputTokens: acc.outputTokens,
+      cacheReadTokens: acc.cacheReadTokens,
+      cacheCreationTokens: acc.cacheCreationTokens,
+      requests: acc.requests,
+      sessions:
+        i === 0 || sorted[i - 1].date !== acc.date
+          ? sessionsByDay.get(acc.date) ?? 0
+          : null,
+      source: "uploader",
+    }));
+
+  const hourlyRows = [...hours.values()]
+    .sort((a, b) =>
+      a.hour === b.hour ? a.model.localeCompare(b.model) : a.hour.localeCompare(b.hour))
+    .map((acc) => ({
+      hour: acc.hour,
+      tool,
+      model: acc.model,
+      machineId,
+      inputTokens: acc.inputTokens,
+      outputTokens: acc.outputTokens,
+      cacheReadTokens: acc.cacheReadTokens,
+      cacheCreationTokens: acc.cacheCreationTokens,
+      requests: acc.requests,
+      source: "uploader",
+    }));
+
+  return { rows, hourlyRows };
+}
+
+function sessionsRoot() {
+  return path.join(homedir(), ".codex", "sessions");
+}
+
+async function* rolloutFiles(dir) {
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return; // missing ~/.codex/sessions → nothing to scan
+  }
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      yield* rolloutFiles(full);
+    } else if (entry.isFile() && entry.name.startsWith("rollout-") && entry.name.endsWith(".jsonl")) {
+      yield full;
+    }
+  }
+}
+
+// Same { rows, hourlyRows, stats } contract as claude-code.mjs.
+export async function aggregate({ sinceDate, machineId = "" } = {}) {
+  const stats = { files: 0, linesRead: 0, malformed: 0, events: 0 };
+  const sinceMs = sinceDate ? Date.parse(`${sinceDate}T00:00:00Z`) : 0;
+  const fileEvents = [];
+
+  for await (const file of rolloutFiles(sessionsRoot())) {
+    if (sinceMs) {
+      try {
+        if ((await stat(file)).mtimeMs < sinceMs) continue;
+      } catch {
+        continue;
+      }
+    }
+    stats.files++;
+    const lines = [];
+    const rl = createInterface({
+      input: createReadStream(file, { encoding: "utf8" }),
+      crlfDelay: Infinity,
+    });
+    for await (const line of rl) {
+      if (!line) continue;
+      stats.linesRead++;
+      try {
+        lines.push(JSON.parse(line));
+      } catch {
+        stats.malformed++;
+      }
+    }
+    const events = foldSession(lines).filter((e) => !sinceDate || e.date >= sinceDate);
+    stats.events += events.length;
+    if (events.length) fileEvents.push(events);
+  }
+
+  const { rows, hourlyRows } = assembleRows(fileEvents, machineId);
+  return { rows, hourlyRows, stats };
 }
