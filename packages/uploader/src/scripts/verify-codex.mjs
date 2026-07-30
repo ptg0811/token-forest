@@ -15,7 +15,7 @@ const tc = (ts, input, cached, output) => ({
     total_token_usage: { input_tokens: input, cached_input_tokens: cached, output_tokens: output },
   } },
 });
-const ctx = (model) => ({ type: "turn_context", model });
+const ctx = (model) => ({ type: "turn_context", payload: { model } });
 
 // 1. Two cumulative snapshots, same model/day: diffs are attributed, input excludes cached.
 {

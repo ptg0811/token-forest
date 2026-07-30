@@ -33,8 +33,8 @@ export function foldSession(lines) {
   const events = [];
 
   for (const entry of lines) {
-    if (entry?.type === "turn_context" && typeof entry.model === "string") {
-      model = entry.model;
+    if (entry?.type === "turn_context" && typeof entry.payload?.model === "string") {
+      model = entry.payload.model;
       continue;
     }
     if (entry?.type !== "event_msg" || entry?.payload?.type !== "token_count") continue;
