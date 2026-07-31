@@ -66,6 +66,7 @@ function printTable(rows, machineId) {
   }
   const headers = [
     "date",
+    "tool",
     "model",
     "input",
     "output",
@@ -76,6 +77,7 @@ function printTable(rows, machineId) {
   ];
   const body = rows.map((r) => [
     r.date,
+    r.tool,
     r.model,
     fmtInt(r.inputTokens),
     fmtInt(r.outputTokens),
@@ -108,6 +110,7 @@ function printTable(rows, machineId) {
   console.log(
     line([
       "TOTAL",
+      "",
       `${rows.length} rows`,
       fmtInt(totals.input),
       fmtInt(totals.output),
