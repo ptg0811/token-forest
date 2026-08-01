@@ -38,12 +38,13 @@ const stepTitle = "mb-3 text-base font-semibold text-[var(--text-primary)]";
 
 type StepId = "tools" | "auto" | "claude" | "copilot" | "custom" | "done";
 
-const STANDARD_TOOLS = new Set(["cursor", "claude_code", "openai", "copilot"]);
+const STANDARD_TOOLS = new Set(["cursor", "claude_code", "codex", "openai", "copilot"]);
 
 const TOOL_OPTIONS: Array<{ key: string; label: string; recommended?: boolean }> = [
   { key: "cursor", label: "Cursor" },
   { key: "claude_code", label: "Claude Code", recommended: true },
-  { key: "openai", label: "Codex · ChatGPT" },
+  { key: "codex", label: "Codex CLI" },
+  { key: "openai", label: "ChatGPT · OpenAI" },
   { key: "copilot", label: "GitHub Copilot" },
 ];
 
@@ -51,7 +52,7 @@ const TOOL_OPTIONS: Array<{ key: string; label: string; recommended?: boolean }>
 function buildSteps(prefs: string[]): StepId[] {
   const steps: StepId[] = ["tools"];
   if (prefs.includes("cursor") || prefs.includes("openai")) steps.push("auto");
-  if (prefs.includes("claude_code")) steps.push("claude");
+  if (prefs.includes("claude_code") || prefs.includes("codex")) steps.push("claude");
   if (prefs.includes("copilot")) steps.push("copilot");
   if (prefs.some((t) => !STANDARD_TOOLS.has(t))) steps.push("custom");
   steps.push("done");
@@ -61,7 +62,7 @@ function buildSteps(prefs: string[]): StepId[] {
 // Checklist row click passes a tool name ("claude_code", "copilot", …); map it
 // to the wizard step that handles that tool for standalone re-runs.
 function stepForTool(tool: string): StepId {
-  if (tool === "claude_code") return "claude";
+  if (tool === "claude_code" || tool === "codex") return "claude";
   if (tool === "copilot") return "copilot";
   if (tool === "cursor" || tool === "openai") return "auto";
   return "custom";
@@ -446,6 +447,10 @@ export function OnboardingWizard(props: {
               검은 창에 <Kbd>⌘</Kbd>+<Kbd>V</Kbd> 붙여넣고 <Kbd>Enter</Kbd>
             </li>
           </ol>
+          <p className="mt-2 text-xs text-[var(--text-muted)]">
+            이 설치는 Codex CLI(<code>~/.codex</code>) 사용량도 함께 수집합니다 — 별도 설치가
+            필요 없어요.
+          </p>
           {detected ? (
             <div className="mt-4 rounded-lg border border-[var(--series-4)]/50 bg-[var(--series-4)]/5 p-3 text-sm font-medium text-[var(--series-4)]">
               ✅ {machineLabelMap.get(detected) ?? detected} 연결 확인됨!
