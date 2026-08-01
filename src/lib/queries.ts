@@ -754,7 +754,7 @@ export type MatrixRow = { memberId: string; name: string; cells: MatrixCell[] };
 
 // Display order for tools we know about; anything else seen in the data is
 // appended after these, alphabetically.
-const MATRIX_TOOL_ORDER = ["cursor", "claude_code", "openai", "copilot"];
+const MATRIX_TOOL_ORDER = ["cursor", "claude_code", "codex", "openai", "copilot"];
 
 // member × tool grid of last-usage dates — whole history, not range-bound,
 // because the question is "언제 마지막으로 썼나". Registered members with no
@@ -1126,8 +1126,11 @@ function pivot(
   return { data, tools };
 }
 
-// 멤버의 날짜별 활동 재료. distinct 툴 목록 + claude_code input/cacheRead 합.
-// since(포함) 이후 날짜만. 성장엔진(src/lib/growth.ts) 입력용.
+// 멤버의 날짜별 활동 재료. distinct 툴 목록 + 에이전틱 툴(claude_code·codex)
+// input/cacheRead 합(효율 보너스 재료). since(포함) 이후 날짜만. 성장엔진 입력용.
+// 효율 보너스(캐시율)에 기여하는 에이전틱 툴. 활동일·스트릭·다양성은 전 툴 기준.
+export const EFFICIENCY_TOOLS = ["claude_code", "codex"];
+
 export async function getGrowthDays(
   memberId: string,
   since: string,
@@ -1141,12 +1144,12 @@ export async function getGrowthDays(
         tools: { $addToSet: "$tool" },
         input: {
           $sum: {
-            $cond: [{ $eq: ["$tool", "claude_code"] }, { $ifNull: ["$inputTokens", 0] }, 0],
+            $cond: [{ $in: ["$tool", EFFICIENCY_TOOLS] }, { $ifNull: ["$inputTokens", 0] }, 0],
           },
         },
         cacheRead: {
           $sum: {
-            $cond: [{ $eq: ["$tool", "claude_code"] }, { $ifNull: ["$cacheReadTokens", 0] }, 0],
+            $cond: [{ $in: ["$tool", EFFICIENCY_TOOLS] }, { $ifNull: ["$cacheReadTokens", 0] }, 0],
           },
         },
       },

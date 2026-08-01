@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { parseArgs, resolveConfig, configPath } from "./config.mjs";
 import * as claudeCode from "./parsers/claude-code.mjs";
 import * as claudeLimits from "./parsers/claude-limits.mjs";
+import * as codex from "./parsers/codex.mjs";
 import { sendRows, sendLimits } from "./send.mjs";
 import { buildAndSendDigest } from "./digest.mjs";
 
@@ -65,6 +66,7 @@ function printTable(rows, machineId) {
   }
   const headers = [
     "date",
+    "tool",
     "model",
     "input",
     "output",
@@ -75,6 +77,7 @@ function printTable(rows, machineId) {
   ];
   const body = rows.map((r) => [
     r.date,
+    r.tool,
     r.model,
     fmtInt(r.inputTokens),
     fmtInt(r.outputTokens),
@@ -107,6 +110,7 @@ function printTable(rows, machineId) {
   console.log(
     line([
       "TOTAL",
+      "",
       `${rows.length} rows`,
       fmtInt(totals.input),
       fmtInt(totals.output),
@@ -183,7 +187,11 @@ async function main() {
 
   console.error(`Machine: ${config.machineId || "(none)"}`);
   console.error(`Scanning ~/.claude/projects for usage since ${config.since} (UTC)...`);
-  const { rows, hourlyRows, stats } = await claudeCode.aggregate({
+  const {
+    rows: claudeRows,
+    hourlyRows: claudeHourly,
+    stats,
+  } = await claudeCode.aggregate({
     sinceDate: config.since,
     machineId: config.machineId,
   });
@@ -192,6 +200,31 @@ async function main() {
       `${fmtInt(stats.counted)} counted, ${fmtInt(stats.duplicates)} duplicate, ` +
       `${fmtInt(stats.synthetic)} synthetic, ${fmtInt(stats.malformed)} malformed lines skipped.`,
   );
+
+  // Codex CLI usage (~/.codex/sessions). Best-effort like the limits/digest
+  // blocks: any failure warns and degrades to empty so it never blocks the
+  // claude_code upload. (Missing dir is already handled inside the parser.)
+  let codexRows = [];
+  let codexHourly = [];
+  try {
+    const codexResult = await codex.aggregate({
+      sinceDate: config.since,
+      machineId: config.machineId,
+    });
+    codexRows = codexResult.rows;
+    codexHourly = codexResult.hourlyRows;
+    if (codexResult.stats.files > 0) {
+      console.error(
+        `Codex: scanned ${codexResult.stats.files} rollout file(s), ` +
+          `${fmtInt(codexResult.stats.events)} usage event(s).`,
+      );
+    }
+  } catch (err) {
+    console.error(`warn: skipped Codex scan (${err.message}).`);
+  }
+
+  const rows = [...claudeRows, ...codexRows];
+  const hourlyRows = [...claudeHourly, ...codexHourly];
   console.error(
     `Aggregated into ${rows.length} daily row(s) and ${hourlyRows.length} hourly row(s).`,
   );

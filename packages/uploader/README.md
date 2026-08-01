@@ -1,11 +1,12 @@
 # @token-forest/uploader
 
 Local uploader CLI for [token-forest](../../). It reads your on-disk **Claude
-Code** session transcripts (`~/.claude/projects/**/*.jsonl`), aggregates daily
-per-model token totals, and pushes them to a token-forest server.
+Code** session transcripts (`~/.claude/projects/**/*.jsonl`) and your **Codex
+CLI** session rollouts (`~/.codex/sessions/**/rollout-*.jsonl`), aggregates
+daily per-model token totals, and pushes them to a token-forest server.
 
-Use this if you run Claude Code on a **personal** account — there's no central
-API to poll, so each member uploads their own usage.
+Use this if you run Claude Code and/or Codex CLI on a **personal** account —
+there's no central API to poll, so each member uploads their own usage.
 
 - Dependency-free: plain Node 22 ESM, no build step, no `npm install`.
 - Idempotent: the server upserts by `(date, tool, model, member)`, so running it
@@ -18,7 +19,8 @@ API to poll, so each member uploads their own usage.
 > **No VPN required.** The server URL is a public HTTPS endpoint (Cloudflare
 > Tunnel) that authenticates purely by your ingest token — you do **not** need
 > Tailscale or any company VPN to upload. Nothing but per-model token counts
-> leaves your machine (`--dry-run` shows exactly what is sent).
+> leaves your machine, for both Claude Code and Codex CLI (`--dry-run` shows
+> exactly what is sent).
 
 1. Ask your token-forest admin for your personal **ingest token** (looks like
    `tmk_...`) and the **server URL**.
@@ -172,12 +174,14 @@ refresh degrades to the usual per-dir warning.
 
 ### What gets sent
 
-One row per `(UTC date, model)` with tool `claude_code` and source `uploader`:
-summed `input` / `output` / `cacheRead` / `cacheCreation` tokens, deduped
-request count, and distinct sessions active that day. Your identity is taken
-from the ingest token — `externalId` is filled in by the server (your member
-email), so nothing personally identifying beyond model/token counts leaves your
-machine.
+One row per `(UTC date, model, tool)` with source `uploader`: summed `input` /
+`output` / `cacheRead` / `cacheCreation` tokens, deduped request count, and
+distinct sessions active that day. Rows are tagged `tool: "claude_code"` for
+Claude Code transcripts and `tool: "codex"` for Codex CLI rollouts — both are
+scanned and sent in the same run (see "Adding another tool" below for how the
+codex parser is wired in). Your identity is taken from the ingest token —
+`externalId` is filled in by the server (your member email), so nothing
+personally identifying beyond model/token counts leaves your machine.
 
 ## Auto-upload on session end (optional)
 
@@ -208,6 +212,9 @@ overlapping window is harmless.
 
 ## Adding another tool
 
-The parser is isolated in `src/parsers/claude-code.mjs` and exports
-`{ tool, aggregate }`. A future codex (or other) parser is a sibling file with
-the same shape — the CLI wiring stays the same.
+Each tool's parser is isolated in its own file under `src/parsers/` and
+exports `{ tool, aggregate }`. `src/parsers/claude-code.mjs` handles Claude
+Code transcripts; `src/parsers/codex.mjs` is a sibling parser with the same
+shape that handles Codex CLI rollouts — `cli.mjs` runs both and merges their
+rows before printing/uploading. Adding another tool means adding another
+sibling parser file; the CLI wiring stays the same.

@@ -5,6 +5,7 @@ import { addDays, todayKst } from "@/lib/date";
 const TOOL_LABELS: Record<string, string> = {
   cursor: "Cursor",
   claude_code: "Claude Code",
+  codex: "Codex",
   openai: "OpenAI",
   copilot: "GitHub Copilot",
   anthropic: "Anthropic",
@@ -25,6 +26,7 @@ export const REQUESTS_ONLY_TOOLS = new Set(["copilot"]);
 const KNOWN_SLOTS: Record<string, number> = {
   cursor: 1,
   claude_code: 2,
+  codex: 7,
   openai: 3,
   copilot: 4,
   anthropic: 5,
