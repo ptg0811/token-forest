@@ -49,7 +49,7 @@ type RecentUsage = { tokens: number; requests: number };
 
 // Tools with dedicated checklist rows / wizard steps; everything else in
 // toolPrefs is a custom tool (manual entry or a future connector).
-const STANDARD_TOOLS = new Set(["cursor", "claude_code", "openai", "copilot"]);
+const STANDARD_TOOLS = new Set(["cursor", "claude_code", "codex", "openai", "copilot"]);
 
 type MemberOnboarding = {
   toolPrefs: string[];
@@ -58,6 +58,7 @@ type MemberOnboarding = {
   githubConnected: boolean;
   identityTools: Set<string>;
   claudeCodeConnected: boolean;
+  codexConnected: boolean;
   recentByTool: Map<string, RecentUsage>;
   myLimits: LimitSnapshot[];
   unmapped: UnmappedRow[];
@@ -81,6 +82,7 @@ async function loadOnboarding(
   const [
     identities,
     claudeCodeRow,
+    codexRow,
     recent,
     limits,
     unmapped,
@@ -91,6 +93,11 @@ async function loadOnboarding(
       UsageDaily.findOne({
         tool: "claude_code",
         externalId: email,
+        date: { $gte: r14.from },
+      }).lean(),
+      UsageDaily.findOne({
+        tool: "codex",
+        memberId: oid,
         date: { $gte: r14.from },
       }).lean(),
       UsageDaily.aggregate([
@@ -140,6 +147,7 @@ async function loadOnboarding(
     githubConnected: Boolean(memberDoc?.githubTokenEnc),
     identityTools: new Set(identities.map((i) => i.tool)),
     claudeCodeConnected: Boolean(claudeCodeRow),
+    codexConnected: Boolean(codexRow),
     recentByTool,
     myLimits: limits,
     unmapped,
@@ -300,12 +308,13 @@ async function MemberView({
     cursor: data.identityTools.has("cursor"),
     openai: data.identityTools.has("openai"),
     claude_code: data.claudeCodeConnected,
+    codex: data.codexConnected,
     copilot: data.githubConnected,
   };
   const connectedCount =
     Object.values(checks).filter(Boolean).length +
     data.customTools.filter((c) => c.connected).length;
-  const totalCount = 4 + data.customTools.length;
+  const totalCount = Object.keys(checks).length + data.customTools.length;
   // Install host is the public ingest domain — the dashboard host sits behind
   // the login proxy, and curl can't pass through that.
   const ingestHost = process.env.INGEST_HOST;
@@ -462,6 +471,25 @@ async function MemberView({
               </div>
             )}
           </div>
+        </ChecklistRow>
+
+        <ChecklistRow done={checks.codex} title="Codex CLI">
+          {checks.codex ? (
+            <p className="text-[var(--text-muted)]">
+              연결됨 — Claude Code 업로더가 <code>~/.codex</code> 세션을 함께 수집합니다.
+            </p>
+          ) : (
+            <p className="text-[var(--text-secondary)]">
+              Claude Code를 설치하면 <code>~/.codex</code>의 Codex CLI 사용량도 자동으로 함께
+              수집돼요. 별도 설치가 필요 없습니다.{" "}
+              <Link
+                href="/me?step=claude_code"
+                className="text-[var(--series-1)] underline"
+              >
+                연결 마법사 열기
+              </Link>
+            </p>
+          )}
         </ChecklistRow>
 
         <ChecklistRow done={checks.copilot} title="GitHub Copilot">
