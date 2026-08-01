@@ -14,6 +14,18 @@ import type { UsageHourlyRow, UsageRow } from "@/lib/types";
 // the response carries a `next_page` string that is fed back as the `page` param
 // until it is null.
 
+// DOUBLE-COUNT GUARD — read before adding a Responses-API usage source here.
+// This connector polls ONLY the Completions usage endpoint. Codex CLI usage is
+// collected separately by the local uploader as tool:"codex" (from ~/.codex
+// rollout logs). Codex (auth_mode=apikey) calls the org's OpenAI *Responses*
+// API, whose usage lives at /v1/organization/usage/responses — a DIFFERENT
+// endpoint — so today there is no overlap: Codex traffic never appears in these
+// tool:"openai" rows. If you extend this connector to also poll the Responses
+// endpoint, that same usage will be counted twice (tool:"openai" here AND
+// tool:"codex" from the uploader) in every cross-tool total/cost sum — the
+// (date, tool, model, externalId) upsert key does NOT dedup across tools. To
+// add Responses polling safely, put the Codex API key in a dedicated project
+// and list it in OPENAI_EXCLUDE_PROJECTS so this connector skips that traffic.
 const USAGE_URL = "https://api.openai.com/v1/organization/usage/completions";
 
 // Max buckets the endpoint returns per page for 1d width. We still follow
