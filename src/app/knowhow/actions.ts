@@ -30,7 +30,7 @@ export async function updatePost(postId: string, input: PostInput): Promise<void
   if (!v.ok) throw new Error(v.error);
   await connectDb();
   const res = await Post.updateOne(
-    { _id: new Types.ObjectId(postId), source: "member", authorMemberId: new Types.ObjectId(member.id) },
+    { _id: new Types.ObjectId(postId), authorMemberId: new Types.ObjectId(member.id) },
     { $set: { title: v.value.title, bodyMarkdown: v.value.bodyMarkdown, link: v.value.link, tags: v.value.tags, activityAt: new Date() } },
   );
   if (res.matchedCount === 0) throw new Error("권한이 없거나 글을 찾을 수 없습니다.");
@@ -42,7 +42,6 @@ export async function deletePost(postId: string): Promise<void> {
   await connectDb();
   const post = await Post.findOne({
     _id: new Types.ObjectId(postId),
-    source: "member",
     authorMemberId: new Types.ObjectId(member.id),
   });
   if (!post) throw new Error("권한이 없거나 글을 찾을 수 없습니다.");

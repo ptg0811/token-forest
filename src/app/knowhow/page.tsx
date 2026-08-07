@@ -4,7 +4,6 @@ import ReactMarkdown from "react-markdown";
 import Link from "next/link";
 import { getViewer } from "@/lib/auth";
 import { getKnowhowFeed } from "@/lib/knowhow-queries";
-import { notionEnabled } from "@/lib/notion";
 import PostEditor from "./PostEditor";
 import PostActions from "./PostActions";
 import ReactionBar from "./ReactionBar";
@@ -26,7 +25,7 @@ export default async function KnowhowPage() {
 
       {posts.length === 0 && (
         <p className="text-sm text-[var(--text-secondary)]">
-          아직 공유된 노하우가 없어요.{!notionEnabled() && " (Notion 연동 미설정)"}
+          아직 공유된 노하우가 없어요.
         </p>
       )}
 
@@ -36,7 +35,7 @@ export default async function KnowhowPage() {
             <h2 className="font-semibold">
               {p.title}{" "}
               <span className="align-middle text-[10px] uppercase text-[var(--text-muted)]">
-                {p.source === "notion" ? "Notion" : "멤버"}
+                {p.source === "ingest" ? "공유" : "직접"}
               </span>
             </h2>
             <span className="whitespace-nowrap text-xs text-[var(--text-muted)]">
@@ -58,9 +57,9 @@ export default async function KnowhowPage() {
           </div>
           <div className="flex flex-wrap items-center gap-3 border-t border-black/5 pt-2 dark:border-white/5">
             {memberId && <ReactionBar postId={p.id} reactions={p.reactions} />}
-            {(p.link || p.notionUrl) && (
-              <Link href={(p.link ?? p.notionUrl)!} target="_blank" className="text-xs text-[var(--accent)] underline">
-                {p.source === "notion" ? "Notion에서 열기 ↗" : "링크 열기 ↗"}
+            {p.link && (
+              <Link href={p.link} target="_blank" className="text-xs text-[var(--accent)] underline">
+                링크 열기 ↗
               </Link>
             )}
           </div>
