@@ -1,3 +1,4 @@
+import "@/scripts/env";
 import { syncNotionPosts, notionEnabled } from "@/lib/notion";
 import { closeDb } from "@/lib/db";
 

@@ -53,7 +53,7 @@ export default async function KnowhowPage() {
               ))}
             </div>
           )}
-          <div className="prose prose-sm max-w-none text-sm text-[var(--text-secondary)] dark:prose-invert">
+          <div className="knowhow-md">
             <ReactMarkdown>{p.bodyMarkdown}</ReactMarkdown>
           </div>
           <div className="flex flex-wrap items-center gap-3 border-t border-black/5 pt-2 dark:border-white/5">
