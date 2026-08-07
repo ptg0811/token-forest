@@ -4,8 +4,10 @@ import { addDays } from "./date";
 export type GrowthDay = {
   date: string; // YYYY-MM-DD (UTC)
   tools: string[]; // 그날 활동한 distinct 툴
-  input: number; // 에이전틱 툴(claude_code·codex) input 합
-  cacheRead: number; // 에이전틱 툴(claude_code·codex) cacheRead 합
+  input: number; // 에이전틱 툴(claude_code·codex) input 합 (참고용)
+  cacheRead: number; // 에이전틱 툴 cacheRead 합 (참고용)
+  output: number; // 에이전틱 툴 output 합 (수율 분자)
+  cacheCreation: number; // 에이전틱 툴 cacheCreation 합 (수율 분모)
 };
 
 export type GrowthState = {
@@ -52,15 +54,23 @@ function streakMultiplier(days: number): number {
   return 1.0;
 }
 
-// 효율 보너스(하루, 상한 +5): 캐시히트 round(율×3) + (distinct툴−1, 상한2).
-// 스펙 표기는 floor지만 스펙 예시(캐시율≈0.9999 → +3)와 모순 — 예시 출력이
-// 의도이므로 round로 계산한다(율 1.0 근처가 +3으로 떨어지지 않게).
+// 효율 보너스(하루, 상한 +5): 컨텍스트 수율 밴드(0..3) + 다양성(distinct툴−1, 상한2).
+// 수율 = output/cacheCreation("새 컨텍스트당 산출"). cacheCreation<1M은 신호 부족으로
+// 0(비penalty). 밴드 임계는 프로덕션 일별 분포 사분위 교정 — 스펙 참조.
 export function efficiencyBonus(day: GrowthDay): number {
-  const denom = day.input + day.cacheRead;
-  const cacheRatio = denom > 0 ? day.cacheRead / denom : 0;
-  const cacheBonus = Math.round(cacheRatio * 3); // 0..3
+  const yieldBonus = yieldBand(day);
   const diversityBonus = Math.min(2, Math.max(0, day.tools.length - 1)); // 0..2
-  return Math.min(5, cacheBonus + diversityBonus);
+  return Math.min(5, yieldBonus + diversityBonus);
+}
+
+// 새 컨텍스트당 산출 밴드. cacheCreation 플로어 1M 미만이면 신호 부족 → 0.
+function yieldBand(day: GrowthDay): number {
+  if (!(day.cacheCreation >= 1_000_000)) return 0; // <1M 또는 비유한 → 신호 부족
+  const y = day.output / day.cacheCreation;
+  if (y < 0.07) return 0;
+  if (y < 0.14) return 1;
+  if (y < 0.24) return 2;
+  return 3;
 }
 
 // 트레일링 7일에 미활동 1일까지 허용(굴러가는 창), 그 이상이면 스트릭 종료.
