@@ -7,6 +7,7 @@ const NAV = [
   { href: "/", label: "대시보드" },
   { href: "/team", label: "팀 분석" },
   { href: "/me", label: "내 사용량" },
+  { href: "/knowhow", label: "노하우" },
   { href: "/members", label: "구성원" },
   { href: "/manual", label: "수동 입력" },
   { href: "/setup", label: "설치 안내" },
