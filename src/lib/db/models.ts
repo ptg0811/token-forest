@@ -117,6 +117,33 @@ export interface DigestDoc {
   updatedAt: Date;
 }
 
+export interface PostDoc {
+  _id: Types.ObjectId;
+  source: "notion" | "member";
+  title: string;
+  bodyMarkdown: string;
+  link: string | null;
+  tags: string[];
+  activityAt: Date;
+  authorMemberId: Types.ObjectId | null;
+  notionId: string | null;
+  notionUrl: string | null;
+  author: string;
+  notionEditedAt: Date | null;
+  notionCreatedAt: Date | null;
+  syncedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ReactionDoc {
+  _id: Types.ObjectId;
+  postId: Types.ObjectId;
+  memberId: Types.ObjectId;
+  emoji: string;
+  createdAt: Date;
+}
+
 const memberSchema = new Schema<MemberDoc>(
   {
     name: { type: String, required: true },
@@ -257,6 +284,39 @@ const syncRunSchema = new Schema<SyncRunDoc>(
 );
 syncRunSchema.index({ tool: 1, status: 1, _id: -1 });
 
+const postSchema = new Schema<PostDoc>(
+  {
+    source: { type: String, enum: ["notion", "member"], required: true },
+    title: { type: String, required: true },
+    bodyMarkdown: { type: String, default: "" },
+    link: { type: String, default: null },
+    tags: { type: [String], default: [] },
+    activityAt: { type: Date, required: true },
+    authorMemberId: { type: Schema.Types.ObjectId, ref: "Member", default: null },
+    notionId: { type: String, default: null },
+    notionUrl: { type: String, default: null },
+    author: { type: String, default: "" },
+    notionEditedAt: { type: Date, default: null },
+    notionCreatedAt: { type: Date, default: null },
+    syncedAt: { type: Date, default: null },
+  },
+  { timestamps: true },
+);
+// member 글은 notionId=null → sparse로 unique 인덱스에서 제외.
+postSchema.index({ notionId: 1 }, { unique: true, sparse: true });
+postSchema.index({ activityAt: -1 });
+
+const reactionSchema = new Schema<ReactionDoc>(
+  {
+    postId: { type: Schema.Types.ObjectId, ref: "Post", required: true },
+    memberId: { type: Schema.Types.ObjectId, ref: "Member", required: true },
+    emoji: { type: String, required: true },
+  },
+  { timestamps: { createdAt: true, updatedAt: false } },
+);
+reactionSchema.index({ postId: 1, memberId: 1, emoji: 1 }, { unique: true });
+reactionSchema.index({ postId: 1 });
+
 // Hot-reload-safe model registration (Next dev recompiles modules).
 function model<T>(name: string, schema: Schema<T>): Model<T> {
   return (mongoose.models[name] as Model<T>) ?? mongoose.model<T>(name, schema);
@@ -269,3 +329,5 @@ export const UsageHourly = model("UsageHourly", usageHourlySchema);
 export const LimitSnapshot = model("LimitSnapshot", limitSnapshotSchema);
 export const Digest = model("Digest", digestSchema);
 export const SyncRun = model("SyncRun", syncRunSchema);
+export const Post = model("Post", postSchema);
+export const Reaction = model("Reaction", reactionSchema);
