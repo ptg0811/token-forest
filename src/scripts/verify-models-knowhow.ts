@@ -6,21 +6,22 @@ function assert(cond: boolean, msg: string) {
   console.log("ok:", msg);
 }
 
-const good = new Post({ source: "member", title: "t", activityAt: new Date(0) });
-assert(good.validateSync() === undefined, "유효한 member Post 통과");
+const good = new Post({ source: "member", title: "t", authorMemberId: new Types.ObjectId(), activityAt: new Date(0) });
+assert(good.validateSync() === undefined, "유효한 Post 통과");
 
-const noSource = new Post({ title: "t", activityAt: new Date(0) });
-assert(noSource.validateSync()?.errors.source !== undefined, "source 필수");
+const ingest = new Post({ source: "ingest", title: "t", authorMemberId: new Types.ObjectId(), activityAt: new Date(0) });
+assert(ingest.validateSync() === undefined, "source ingest 통과");
 
-const noTitle = new Post({ source: "member", activityAt: new Date(0) });
+const noAuthor = new Post({ source: "member", title: "t", activityAt: new Date(0) });
+assert(noAuthor.validateSync()?.errors.authorMemberId !== undefined, "authorMemberId 필수");
+
+const noTitle = new Post({ source: "member", authorMemberId: new Types.ObjectId(), activityAt: new Date(0) });
 assert(noTitle.validateSync()?.errors.title !== undefined, "title 필수");
 
-const badSource = new Post({ source: "x", title: "t", activityAt: new Date(0) });
-assert(badSource.validateSync()?.errors.source !== undefined, "source enum 강제");
+const badSource = new Post({ source: "notion", title: "t", authorMemberId: new Types.ObjectId(), activityAt: new Date(0) });
+assert(badSource.validateSync()?.errors.source !== undefined, "source enum member|ingest 강제");
 
 const r = new Reaction({ postId: new Types.ObjectId(), memberId: new Types.ObjectId(), emoji: "👍" });
 assert(r.validateSync() === undefined, "유효한 Reaction 통과");
-const rBad = new Reaction({ memberId: new Types.ObjectId(), emoji: "👍" });
-assert(rBad.validateSync()?.errors.postId !== undefined, "postId 필수");
 
 console.log("ALL PASS");

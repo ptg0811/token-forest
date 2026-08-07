@@ -119,19 +119,13 @@ export interface DigestDoc {
 
 export interface PostDoc {
   _id: Types.ObjectId;
-  source: "notion" | "member";
+  source: "member" | "ingest";
   title: string;
   bodyMarkdown: string;
   link: string | null;
   tags: string[];
+  authorMemberId: Types.ObjectId;
   activityAt: Date;
-  authorMemberId: Types.ObjectId | null;
-  notionId: string | null;
-  notionUrl: string | null;
-  author: string;
-  notionEditedAt: Date | null;
-  notionCreatedAt: Date | null;
-  syncedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -286,25 +280,19 @@ syncRunSchema.index({ tool: 1, status: 1, _id: -1 });
 
 const postSchema = new Schema<PostDoc>(
   {
-    source: { type: String, enum: ["notion", "member"], required: true },
+    source: { type: String, enum: ["member", "ingest"], required: true },
     title: { type: String, required: true },
     bodyMarkdown: { type: String, default: "" },
     link: { type: String, default: null },
     tags: { type: [String], default: [] },
+    authorMemberId: { type: Schema.Types.ObjectId, ref: "Member", required: true },
     activityAt: { type: Date, required: true },
-    authorMemberId: { type: Schema.Types.ObjectId, ref: "Member", default: null },
-    notionId: { type: String, default: null },
-    notionUrl: { type: String, default: null },
-    author: { type: String, default: "" },
-    notionEditedAt: { type: Date, default: null },
-    notionCreatedAt: { type: Date, default: null },
-    syncedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );
-// member 글은 notionId=null → sparse로 unique 인덱스에서 제외.
-postSchema.index({ notionId: 1 }, { unique: true, sparse: true });
 postSchema.index({ activityAt: -1 });
+// 인제스트 멱등 조회: 같은 멤버·링크 재주입 시 update.
+postSchema.index({ authorMemberId: 1, link: 1 });
 
 const reactionSchema = new Schema<ReactionDoc>(
   {
