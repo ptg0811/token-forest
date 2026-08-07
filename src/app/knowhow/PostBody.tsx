@@ -8,7 +8,7 @@ const CLAMP_PX = 200;
 
 // 노하우 본문: GFM(표·취소선) 렌더 + 인라인 접기. 내용이 CLAMP_PX를 넘으면
 // 미리보기(클램프 + 하단 페이드)로 접고 "더보기"/"접기" 토글을 노출한다.
-export default function PostBody({ markdown }: { markdown: string }) {
+export default function PostBody({ markdown, anchorId }: { markdown: string; anchorId?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [overflow, setOverflow] = useState(false);
   const [collapsed, setCollapsed] = useState(true);
@@ -17,6 +17,11 @@ export default function PostBody({ markdown }: { markdown: string }) {
     const el = ref.current;
     if (el) setOverflow(el.scrollHeight > CLAMP_PX + 8);
   }, [markdown]);
+
+  // 딥링크(`/knowhow#<id>`)로 들어오면 해당 글을 펼친 채로 보여준다.
+  useEffect(() => {
+    if (anchorId && window.location.hash === `#${anchorId}`) setCollapsed(false);
+  }, [anchorId]);
 
   const clamp = overflow && collapsed;
   return (

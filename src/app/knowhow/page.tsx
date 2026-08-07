@@ -7,6 +7,7 @@ import PostEditor from "./PostEditor";
 import PostActions from "./PostActions";
 import PostBody from "./PostBody";
 import ReactionBar from "./ReactionBar";
+import ShareButton from "./ShareButton";
 
 export default async function KnowhowPage() {
   const viewer = await getViewer();
@@ -30,7 +31,7 @@ export default async function KnowhowPage() {
       )}
 
       {posts.map((p) => (
-        <article key={p.id} className="flex flex-col gap-2 rounded-xl border border-black/10 p-4 dark:border-white/10">
+        <article id={p.id} key={p.id} className="scroll-mt-20 flex flex-col gap-2 rounded-xl border border-black/10 p-4 dark:border-white/10">
           <div className="flex items-baseline justify-between gap-2">
             <h2 className="font-semibold">
               {p.title}{" "}
@@ -52,7 +53,7 @@ export default async function KnowhowPage() {
               ))}
             </div>
           )}
-          <PostBody markdown={p.bodyMarkdown} />
+          <PostBody markdown={p.bodyMarkdown} anchorId={p.id} />
           <div className="flex flex-wrap items-center gap-3 border-t border-black/5 pt-2 dark:border-white/5">
             {memberId && <ReactionBar postId={p.id} reactions={p.reactions} />}
             {p.link && (
@@ -60,6 +61,7 @@ export default async function KnowhowPage() {
                 링크 열기 ↗
               </Link>
             )}
+            <ShareButton postId={p.id} />
           </div>
         </article>
       ))}
