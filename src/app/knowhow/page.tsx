@@ -1,11 +1,11 @@
 export const dynamic = "force-dynamic";
 
-import ReactMarkdown from "react-markdown";
 import Link from "next/link";
 import { getViewer } from "@/lib/auth";
 import { getKnowhowFeed } from "@/lib/knowhow-queries";
 import PostEditor from "./PostEditor";
 import PostActions from "./PostActions";
+import PostBody from "./PostBody";
 import ReactionBar from "./ReactionBar";
 
 export default async function KnowhowPage() {
@@ -52,9 +52,7 @@ export default async function KnowhowPage() {
               ))}
             </div>
           )}
-          <div className="knowhow-md">
-            <ReactMarkdown>{p.bodyMarkdown}</ReactMarkdown>
-          </div>
+          <PostBody markdown={p.bodyMarkdown} />
           <div className="flex flex-wrap items-center gap-3 border-t border-black/5 pt-2 dark:border-white/5">
             {memberId && <ReactionBar postId={p.id} reactions={p.reactions} />}
             {p.link && (
