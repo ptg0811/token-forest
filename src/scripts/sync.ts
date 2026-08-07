@@ -6,7 +6,6 @@ import "@/scripts/env";
 //   pnpm sync --since 2026-07-01     # backfill from a date
 import { allConnectors, connectorFor } from "@/connectors";
 import { addDays, isoDaysAgo, todayUtc } from "@/lib/date";
-import { syncNotionPosts } from "@/lib/notion";
 import {
   autoClaimEmailIdentities,
   lastSyncedDate,
@@ -80,8 +79,6 @@ export async function runSync(opts: { tool?: string; since?: string } = {}) {
       process.exitCode = 1;
     }
   }
-  // Notion 노하우 미러 (커넥터와 무관, 자체적으로 실패를 기록·격리).
-  await syncNotionPosts();
   // New rows may belong to a registered email that had no usage before.
   try {
     const claimed = await autoClaimEmailIdentities();

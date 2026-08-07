@@ -5,11 +5,10 @@ import { REACTION_EMOJIS } from "@/lib/knowhow";
 export type FeedReaction = { emoji: string; count: number; mine: boolean };
 export type FeedPost = {
   id: string;
-  source: "notion" | "member";
+  source: "member" | "ingest";
   title: string;
   bodyMarkdown: string;
   link: string | null;
-  notionUrl: string | null;
   tags: string[];
   authorName: string;
   activityAt: string; // ISO
@@ -52,11 +51,10 @@ export async function getKnowhowFeed(viewerMemberId: string | null): Promise<Fee
       title: p.title,
       bodyMarkdown: p.bodyMarkdown,
       link: p.link ?? null,
-      notionUrl: p.notionUrl ?? null,
       tags: p.tags ?? [],
-      authorName: p.source === "member" ? (nameById.get(String(p.authorMemberId)) ?? "알 수 없음") : (p.author || "Notion"),
+      authorName: nameById.get(String(p.authorMemberId)) ?? "알 수 없음",
       activityAt: new Date(p.activityAt).toISOString(),
-      isOwner: Boolean(viewerMemberId && p.source === "member" && String(p.authorMemberId) === viewerMemberId),
+      isOwner: Boolean(viewerMemberId && String(p.authorMemberId) === viewerMemberId),
       reactions: order(byPost.get(id) ?? []),
     };
   });
