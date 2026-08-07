@@ -14,7 +14,8 @@
     "lint": "eslint",
     "member": "tsx src/scripts/member.ts",
     "sync": "tsx src/scripts/sync.ts",
-    "report": "tsx src/scripts/report.ts"
+    "report": "tsx src/scripts/report.ts",
+    "ax-metrics": "tsx src/scripts/ax-metrics.ts"
   },
   "dependencies": {
     "mongoose": "^9.7.4",
