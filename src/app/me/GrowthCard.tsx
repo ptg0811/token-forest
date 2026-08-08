@@ -3,6 +3,7 @@ import { getGrowthDays } from "@/lib/queries";
 import { computeGrowth, MILESTONE_CATALOG, STAGE_CATALOG } from "@/lib/growth";
 import { todayKst, teamEpoch } from "@/lib/date";
 import { Card } from "@/app/_components/ui";
+import Link from "next/link";
 
 // 내 나무 카드: 스테이지·GP 게이지·스트릭·다음 마일스톤.
 // growth 엔진 규칙(토큰량은 성장에 미기여)에 따라 볼륨 수치는 표시하지 않는다.
@@ -70,6 +71,9 @@ export default async function GrowthCard({ memberId }: { memberId: string }) {
       <p className="mt-2 text-xs text-[var(--text-secondary)]">
         활동 {g.activeDays}일 · 최고 🔥{g.bestStreak} · 오늘 효율 +{g.efficiencyBonusToday}
       </p>
+      <Link href="/guide" className="mt-2 inline-block text-xs font-medium text-[var(--accent-strong)]">
+        기호·규칙 전체 도감 →
+      </Link>
       <details className="mt-3 text-xs text-[var(--text-secondary)]">
         <summary className="cursor-pointer select-none">성장 규칙</summary>
         <div className="mt-2 space-y-2">
