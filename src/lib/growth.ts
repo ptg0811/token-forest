@@ -147,6 +147,11 @@ export const STAGE_CATALOG = STAGES.map(([stage, emoji, label, minGp]) => ({
   minGp,
 }));
 
+// 스트릭 배수표(도감 표시용 단일 소스). base(0일)는 제외.
+export const STREAK_CATALOG = STREAK_TIERS
+  .filter(([days]) => days > 0)
+  .map(([days, mult]) => ({ days, mult }));
+
 function collectMilestones(counts: Record<string, number>): {
   unlocked: string[];
   next: { axis: string; label: string; remaining: number } | null;
