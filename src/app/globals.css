@@ -113,6 +113,43 @@ body {
 }
 /* 올빼미: 이동 없음 — 고개 회전 + 깜빡임 */
 @keyframes fs-owl { 0%, 40%, 100% { transform: scaleX(1); } 45%, 70% { transform: scaleX(-1); } }
+/* --- 마일스톤 장식 (fs-orn-*) --- */
+.fs-orn { position: absolute; line-height: 1; pointer-events: none; z-index: 12; } /* 나무(z-10) 앞. aura·fade만 아래 override */
+@keyframes fs-orn-pulse { 0%, 100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.2); opacity: 1; } }
+.fs-orn-pulse { animation: fs-orn-pulse 2.6s ease-in-out infinite; }
+@keyframes fs-orn-orbit-wide { 0% { transform: translate(-22px, 2px); } 25% { transform: translate(0, -12px); } 50% { transform: translate(22px, 2px); } 75% { transform: translate(0, 12px); } 100% { transform: translate(-22px, 2px); } }
+.fs-orn-orbit-wide { animation: fs-orn-orbit-wide 6.5s linear infinite; }
+@keyframes fs-orn-orbit-tight { 0% { transform: translate(-12px, 0); } 25% { transform: translate(0, -8px); } 50% { transform: translate(12px, 0); } 75% { transform: translate(0, 8px); } 100% { transform: translate(-12px, 0); } }
+.fs-orn-orbit-tight { animation: fs-orn-orbit-tight 3.4s linear infinite; }
+@keyframes fs-orn-breathe { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.65; } }
+.fs-orn-breathe { animation: fs-orn-breathe 5s ease-in-out infinite; opacity: 0.4; }
+@keyframes fs-orn-twinkle { 0%, 100% { opacity: 0.35; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.15); } }
+.fs-orn-twinkle { animation: fs-orn-twinkle 2.4s ease-in-out infinite; }
+@keyframes fs-orn-drip { 0%, 55% { transform: translateY(0); opacity: 0.9; } 80% { transform: translateY(8px); opacity: 0.4; } 81%, 100% { transform: translateY(0); opacity: 0; } }
+.fs-orn-drip { animation: fs-orn-drip 4.5s ease-in infinite; }
+@keyframes fs-orn-hop { 0%, 42%, 100% { transform: translateY(0); } 47% { transform: translateY(-7px); } 52% { transform: translateY(0); } }
+.fs-orn-hop { animation: fs-orn-hop 4.2s ease-in-out infinite; }
+@keyframes fs-orn-rest { 0%, 88%, 100% { transform: rotate(0); } 92% { transform: rotate(-6deg); } 96% { transform: rotate(0); } }
+.fs-orn-rest { animation: fs-orn-rest 7s ease-in-out infinite; }
+@keyframes fs-orn-blink { 0%, 42%, 48%, 100% { opacity: 1; } 45% { opacity: 0.15; } }
+.fs-orn-blink { animation: fs-orn-blink 5.5s ease-in-out infinite; }
+@keyframes fs-orn-fade { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.6; } }
+.fs-orn-fade { animation: fs-orn-fade 6s ease-in-out infinite; opacity: 0.4; z-index: 0; }
+@keyframes fs-orn-glow { 0%, 100% { opacity: 0.5; transform: translateX(-50%) scale(1); } 50% { opacity: 0.9; transform: translateX(-50%) scale(1.1); } }
+.fs-orn-glow { animation: fs-orn-glow 3.6s ease-in-out infinite; opacity: 0.55; z-index: 0; }
+@keyframes fs-orn-glow-strong { 0%, 100% { opacity: 0.55; transform: translateX(-50%) scale(1); } 50% { opacity: 1; transform: translateX(-50%) scale(1.18); } }
+.fs-orn-glow-strong { animation: fs-orn-glow-strong 3.2s ease-in-out infinite; opacity: 0.6; z-index: 0; }
+@keyframes fs-orn-zzz { 0% { transform: translateY(0); opacity: 0.3; } 50% { opacity: 0.9; } 100% { transform: translateY(-10px); opacity: 0; } }
+.fs-orn-zzz { animation: fs-orn-zzz 3s ease-out infinite; }
+@keyframes fs-orn-sway-s { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+.fs-orn-sway-s { animation: fs-orn-sway-s 3.6s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes fs-orn-sway-m { 0%, 100% { transform: rotate(-7deg); } 50% { transform: rotate(7deg); } }
+.fs-orn-sway-m { animation: fs-orn-sway-m 3.2s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes fs-orn-sway-l { 0%, 100% { transform: rotate(-11deg); } 50% { transform: rotate(11deg); } }
+.fs-orn-sway-l { animation: fs-orn-sway-l 2.8s ease-in-out infinite; transform-origin: 50% 100%; }
+/* 활력 — 정적(애니 없음): 감속모션서도 유지 */
+.fs-vital-dozing { opacity: 0.72; filter: grayscale(0.25); }
+.fs-vital-lively { filter: saturate(1.12) brightness(1.05); }
 @media (prefers-reduced-motion: reduce) {
   [class*="fs-scene"] * { animation: none !important; }
 }
