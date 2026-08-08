@@ -5,12 +5,41 @@ import { getGrowthDays } from "@/lib/queries";
 import { computeGrowth } from "@/lib/growth";
 import { todayKst, teamEpoch } from "@/lib/date";
 import { EmptyState } from "@/app/_components/ui";
-import { timeBand, hash32, treeLayout, pickAnimal, type TimeBand } from "@/lib/forest-scene";
+import {
+  timeBand, hash32, treeLayout, pickAnimal,
+  ornamentsFor, vitalityView, type TimeBand, type OrnamentZone,
+} from "@/lib/forest-scene";
 
 // 팀 숲 장면: 단일 지평선, id 해시 배치(등수 신호 금지), 밤낮 밴드, 습성 동물.
 // GP·스테이지·스트릭만 노출 — 토큰 볼륨 절대 금지 (안티게이밍 가드레일).
 const STAGE_SIZE: Record<string, number> = {
   dormant: 22, germinated: 26, seedling: 34, sapling: 40, young: 46, mature: 52, ancient: 56,
+};
+
+// 나무 기준 장식 오프셋(px). index=티어(누적이라 안정). 시작값 — 시각 확인 후 미세조정.
+// left는 calc(50% + x)로 중앙 기준. top/bottom 중 하나만 지정.
+type Off = { x: number; top?: number; bottom?: number; size?: number };
+const AIR_OFF: Off[] = [
+  { x: -22, top: 6, size: 20 },   // 🌸 pulse
+  { x: 14, top: -8, size: 19 },   // 🦋 orbit-wide
+  { x: 22, top: 22, size: 16 },   // 🐝 orbit-tight
+  { x: 0, top: -4, size: 40 },    // 🌈 breathe (뒤·큼)
+  { x: 0, top: -22, size: 18 },   // ⭐ twinkle (크라운 위)
+];
+const GROUND_OFF: Off[] = [
+  { x: 22, top: 26, size: 14 },   // 💧 drip
+  { x: -28, bottom: 20, size: 18 },// 🐦 hop
+  { x: -46, bottom: 18, size: 22 },// 🦌 rest
+  { x: -22, top: 12, size: 18 },  // 🦉 blink
+  { x: 0, bottom: 18, size: 30 }, // 🏞️ fade (뒤)
+];
+const FLORA_OFF: Off[] = [
+  { x: 12, bottom: 16, size: 19 }, // 🍄 sway-s
+  { x: 26, bottom: 16, size: 18 }, // 🌾 sway-m
+  { x: 2, bottom: 16, size: 20 },  // 🌻 sway-l
+];
+const OFF_BY_ZONE: Record<OrnamentZone, Off[]> = {
+  air: AIR_OFF, ground: GROUND_OFF, flora: FLORA_OFF, aura: [],
 };
 
 const BAND_BG: Record<TimeBand, string> = {
@@ -81,6 +110,9 @@ export default async function ForestScene({ band }: { band?: TimeBand }) {
       />
       {trees.map((t) => {
         const p = pos.get(t.id)!;
+        const orns = ornamentsFor(t.g.milestones);
+        const vv = vitalityView(t.g.vitality);
+        const aura = orns.filter((o) => o.zone === "aura");
         return (
           <Link
             key={t.id}
@@ -89,8 +121,31 @@ export default async function ForestScene({ band }: { band?: TimeBand }) {
             className="absolute bottom-9 -translate-x-1/2 text-center"
             style={{ left: `${p.xPct}%` }}
           >
-            <span className="block transition-transform hover:scale-110">
-              <span className="block" style={{ animation: `fs-gust 16s ease-in-out ${p.gustDelay}s infinite`, transformOrigin: "50% 100%" }}>
+            <span className={`relative block transition-transform hover:scale-110 ${vv.swayClass}`}>
+              {/* 수관 광채(효율) — 나무 뒤 */}
+              {aura.map((o, i) => (
+                <span
+                  key={o.key}
+                  aria-hidden
+                  className={`fs-orn fs-orn-${o.motion}`}
+                  style={{
+                    left: "50%",
+                    bottom: 8 + i * 6,
+                    width: 60,
+                    height: 60,
+                    borderRadius: "50%",
+                    background: "radial-gradient(circle, rgba(240,190,90,0.55) 0%, transparent 62%)",
+                    transform: "translateX(-50%)",
+                  }}
+                />
+              ))}
+              {/* 활력 — 조는 나무 위 💤 */}
+              {vv.sleepEmoji && (
+                <span aria-hidden className="fs-orn fs-orn-zzz" style={{ left: "54%", top: -16, fontSize: 13 }}>
+                  {vv.sleepEmoji}
+                </span>
+              )}
+              <span className="relative z-10 block" style={{ animation: `fs-gust 16s ease-in-out ${p.gustDelay}s infinite`, transformOrigin: "50% 100%" }}>
                 <span
                   className="block"
                   style={{
@@ -102,6 +157,21 @@ export default async function ForestScene({ band }: { band?: TimeBand }) {
                   {t.g.stageEmoji}
                 </span>
               </span>
+              {/* air·ground·flora 장식 */}
+              {orns.filter((o) => o.zone !== "aura").map((o) => {
+                const off = (OFF_BY_ZONE[o.zone][o.index] ?? { x: 0 }) as Off;
+                const v = off.top !== undefined ? { top: off.top } : { bottom: off.bottom ?? 16 };
+                return (
+                  <span
+                    key={o.key}
+                    aria-hidden
+                    className={`fs-orn fs-orn-${o.motion}`}
+                    style={{ left: `calc(50% + ${off.x}px)`, fontSize: off.size ?? 18, ...v }}
+                  >
+                    {o.emoji}
+                  </span>
+                );
+              })}
               <span className={tagCls}>
                 {t.name} Lv{t.g.level}
                 {t.g.streakDays >= 3 ? ` 🔥${t.g.streakDays}` : ""}
