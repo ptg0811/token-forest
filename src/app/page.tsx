@@ -23,6 +23,7 @@ import LimitsOverview from "@/app/_components/LimitsOverview";
 import { SyncNowButton } from "@/app/_components/SyncNowButton";
 import { getNumStyle } from "@/app/_lib/numfmt";
 import ForestScene from "@/app/_components/ForestScene";
+import SymbolLegend from "@/app/_components/SymbolLegend";
 import MaturityBanner from "@/app/_components/analytics/MaturityBanner";
 import { getTeamMaturity } from "@/lib/team-maturity";
 
@@ -54,6 +55,10 @@ export default async function OverviewPage({
       {/* 가장 첫 시각요소 = 팀 숲 (스펙: 통합 숲 장면) */}
       <div className="mb-6">
         <ForestScene />
+      </div>
+
+      <div className="mb-6">
+        <SymbolLegend />
       </div>
 
       <div className="mb-6">
