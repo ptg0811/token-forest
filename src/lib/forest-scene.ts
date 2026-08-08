@@ -55,3 +55,58 @@ export function pickAnimal(seed: number, band: TimeBand): string {
   const pool = band === "night" ? NIGHT_ANIMALS : DAY_ANIMALS;
   return pool[seed % pool.length];
 }
+
+// --- 마일스톤 장식 매핑 (구역 모델) ---
+// 배지 이모지는 growth.ts 기본을 그대로 재사용. 숲 전용 스프라이트 안 만듦.
+
+export type OrnamentZone = "air" | "ground" | "aura" | "flora";
+
+export type Ornament = {
+  key: string;
+  zone: OrnamentZone;
+  emoji: string;
+  motion: string; // CSS 클래스 접미 → fs-orn-<motion>
+  index: number; // 같은 zone 내 순번(위치 분산). 마일스톤은 누적이라 티어 순서와 일치.
+};
+
+// 정의 순서 = 순회 순서 = 결정성. 각 축 티어 오름차순.
+const ORNAMENT_MAP: Record<string, { zone: OrnamentZone; emoji: string; motion: string }> = {
+  streak_3: { zone: "air", emoji: "🌸", motion: "pulse" },
+  streak_7: { zone: "air", emoji: "🦋", motion: "orbit-wide" },
+  streak_14: { zone: "air", emoji: "🐝", motion: "orbit-tight" },
+  streak_30: { zone: "air", emoji: "🌈", motion: "breathe" },
+  streak_60: { zone: "air", emoji: "⭐", motion: "twinkle" },
+  active_days_10: { zone: "ground", emoji: "💧", motion: "drip" },
+  active_days_30: { zone: "ground", emoji: "🐦", motion: "hop" },
+  active_days_100: { zone: "ground", emoji: "🦌", motion: "rest" },
+  active_days_200: { zone: "ground", emoji: "🦉", motion: "blink" },
+  active_days_365: { zone: "ground", emoji: "🏞️", motion: "fade" },
+  efficiency_7: { zone: "aura", emoji: "☀️", motion: "glow" },
+  efficiency_30: { zone: "aura", emoji: "🌞", motion: "glow-strong" },
+  tools_2: { zone: "flora", emoji: "🍄", motion: "sway-s" },
+  tools_3: { zone: "flora", emoji: "🌾", motion: "sway-m" },
+  tools_4: { zone: "flora", emoji: "🌻", motion: "sway-l" },
+};
+
+// 언락 마일스톤 → 장식 리스트. 매핑에 없는 키 무시. zone별 index 부여.
+export function ornamentsFor(milestones: string[]): Ornament[] {
+  const has = new Set(milestones);
+  const byZone: Record<string, number> = {};
+  const out: Ornament[] = [];
+  for (const key of Object.keys(ORNAMENT_MAP)) {
+    if (!has.has(key)) continue;
+    const m = ORNAMENT_MAP[key];
+    const index = byZone[m.zone] ?? 0;
+    byZone[m.zone] = index + 1;
+    out.push({ key, zone: m.zone, emoji: m.emoji, motion: m.motion, index });
+  }
+  return out;
+}
+
+export type VitalityView = { swayClass: string; sleepEmoji: string | null };
+
+export function vitalityView(vitality: "lively" | "neutral" | "dozing"): VitalityView {
+  if (vitality === "dozing") return { swayClass: "fs-vital-dozing", sleepEmoji: "💤" };
+  if (vitality === "lively") return { swayClass: "fs-vital-lively", sleepEmoji: null };
+  return { swayClass: "", sleepEmoji: null };
+}
