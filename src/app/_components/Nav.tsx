@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const NAV = [
   { href: "/", label: "대시보드" },
+  { href: "/guide", label: "도감" },
   { href: "/team", label: "팀 분석" },
   { href: "/me", label: "내 사용량" },
   { href: "/knowhow", label: "노하우" },
